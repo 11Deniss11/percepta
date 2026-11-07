@@ -2,6 +2,7 @@ build/
 install/
 log/
 weights/
+.vscode/
 .colcon*
 __pycache__/
 *.py[cod]
