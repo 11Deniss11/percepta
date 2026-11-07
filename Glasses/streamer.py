@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import io
+import ipaddress
 import os
 import socket
 import struct
@@ -112,6 +113,10 @@ def first_client_ip(seen_ips: set[str]) -> str | None:
             if len(fields) < 3:
                 continue
             ip = fields[2]
+            try:
+                ipaddress.ip_address(ip)
+            except ValueError:
+                continue
             if ip != AP_ADDRESS and ip not in seen_ips:
                 seen_ips.add(ip)
                 return ip
@@ -125,6 +130,10 @@ def first_client_ip(seen_ips: set[str]) -> str | None:
         fields = line.split()
         if fields and fields[0] != AP_ADDRESS and fields[-1:] != ["FAILED"]:
             ip = fields[0]
+            try:
+                ipaddress.ip_address(ip)
+            except ValueError:
+                continue
             if ip not in seen_ips:
                 seen_ips.add(ip)
                 return ip
