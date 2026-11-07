@@ -7,12 +7,14 @@
 	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
 	"workspaceFolder": "/workspace",
 	"runArgs": [
-		"--net=host",
+		"--network=host",
 		"--ipc=host",
 		// "--device=/dev/video0"
 	],
 	"containerEnv": {
-		"DISPLAY": "${localEnv:DISPLAY}"
+		"DISPLAY": "${localEnv:DISPLAY}",
+		"ROS_DOMAIN_ID": "10",
+		"ROS_LOCALHOST_ONLY": "0"
 	},
 	"mounts": [
 		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
