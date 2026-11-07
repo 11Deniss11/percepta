@@ -18,7 +18,7 @@ class MotorInstructions(Node):
         self.get_logger().info('Motor Instructions node started')
 
         # UDP socket parameters
-        self.declare_parameter('udp_address', '0.0.0.0')
+        self.declare_parameter('udp_address', '172.20.10.2')
         self.declare_parameter('udp_port', 5000)
 
         # Initialize UDP socket
@@ -28,7 +28,7 @@ class MotorInstructions(Node):
         # Arguments: (MessageType, 'topic_name', callback_function, qos_depth)
         self.subscription = self.create_subscription(
             String,
-            '/motor_instructions_topic',
+            '/dummy_instructions',
             self.instructions_callback,
             10  # Max number of stored messages while wiaitng for processing to finish
         )
@@ -80,13 +80,6 @@ class MotorInstructions(Node):
             self.get_logger().info(f'Sent UDP: {payload} to {target_ip}:{target_port}')
         except Exception as e:
             self.get_logger().error(f'UDP send failed: {e}')
-
-
-    
-
-
-
-
 
         
 

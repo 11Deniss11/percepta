@@ -28,7 +28,7 @@ class DummyPublisher(Node):
     def timer_callback(self):
         # Construct and publish the message
         msg = String()
-        msg.data = f'Dummy instruction payload #{self.count}'
+        msg.data = f'0.0, 0.0, 100.0, 100.0'  # Dummy instruction data
         
         self.publisher_.publish(msg)
         self.get_logger().info(f'Published: "{msg.data}"')
