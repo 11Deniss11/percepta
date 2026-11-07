@@ -1,7 +1,9 @@
 build/
 install/
 log/
+weights/
 .colcon*
 __pycache__/
 *.py[cod]
 .pytest_cache/
+yolov8s-worldv2.pt

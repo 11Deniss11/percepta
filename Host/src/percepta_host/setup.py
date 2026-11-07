@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'udp_image_publisher = percepta_host.image_retriever:main',
             'yolo_processing = percepta_host.yolo_processing:main',
         ],
     },

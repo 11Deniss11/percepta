@@ -16,6 +16,10 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
 
 WORKDIR /workspace
 
+# The UDP image receiver listens on this port. Host networking is configured
+# by the devcontainer, so this is documentation rather than port forwarding.
+EXPOSE 5000/udp
+
 RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 
 CMD ["bash"]
