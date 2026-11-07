@@ -5,6 +5,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY streamer.py receiver.py ./
+COPY streamer.py ./
 
 CMD ["python", "streamer.py"]
