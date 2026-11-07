@@ -29,9 +29,11 @@ LEASE_TIMEOUT = float(os.getenv("LEASE_TIMEOUT", "300"))
 CLIENT_IP_FILE = Path(os.getenv("CLIENT_IP_FILE", "first_client_ip.txt"))
 
 MAGIC = b"PJPG"
-PROTOCOL_VERSION = 1
+# Version 2 uses a uint32 JPEG-size field; version 1 used uint16.
+PROTOCOL_VERSION = 2
 # magic, version, frame number, chunk number, chunk count, JPEG size, timestamp
-HEADER = struct.Struct("!4sBIIHHQ")
+# JPEG size is a uint32 because a JPEG can be larger than 65535 bytes.
+HEADER = struct.Struct("!4sBIIHIQ")
 
 
 def run(*args: str) -> str:
@@ -237,7 +239,7 @@ def jpeg_frames() -> Iterator[bytes]:
 
 def stream_jpegs(destination_ip: str) -> None:
     if CHUNK_SIZE <= 0 or CHUNK_SIZE > 65535 - HEADER.size:
-        raise ValueError("CHUNK_SIZE must be between 1 and 65510")
+        raise ValueError(f"CHUNK_SIZE must be between 1 and {65535 - HEADER.size}")
     destination = (destination_ip, UDP_PORT)
     interval = 1.0 / FRAME_RATE if FRAME_RATE > 0 else 0
     frame_number = 0
@@ -248,6 +250,8 @@ def stream_jpegs(destination_ip: str) -> None:
                 jpeg[offset : offset + CHUNK_SIZE]
                 for offset in range(0, len(jpeg), CHUNK_SIZE)
             ]
+            if len(jpeg) > 0xFFFFFFFF:
+                raise ValueError("JPEG is too large for the UDP frame format")
             if len(chunks) > 65535:
                 raise ValueError("JPEG is too large for the UDP frame format")
             for chunk_number, chunk in enumerate(chunks):

@@ -1,4 +1,6 @@
 import socket
+import struct
+import time
 
 import cv2
 import numpy as np
@@ -6,6 +8,15 @@ import rclpy
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+
+
+MAGIC = b'PJPG'
+# Version 2 uses a uint32 JPEG-size field; version 1 used uint16.
+PROTOCOL_VERSION = 2
+# magic, version, frame number, chunk number, chunk count, JPEG size, timestamp
+HEADER = struct.Struct('!4sBIIHIQ')
+MAX_FRAME_SIZE = 64 * 1024 * 1024
+FRAME_TIMEOUT = 1.0
 
 
 class UdpImagePublisher(Node):
@@ -26,11 +37,11 @@ class UdpImagePublisher(Node):
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
         self.socket.bind((address, port))
         self.socket.setblocking(False)
+        self.frames = {}
 
         self.bridge = CvBridge()
         self.publisher = self.create_publisher(Image, topic, 10)
 
-        # 30 Hz polling
         self.timer = self.create_timer(1.0 / 30.0, self.receive_frame)
 
         self.get_logger().info(
@@ -38,25 +49,88 @@ class UdpImagePublisher(Node):
             f'publishing to {topic}'
         )
 
+    def _reassemble_packet(self, packet):
+        if len(packet) < HEADER.size:
+            self.get_logger().debug('Ignoring UDP packet shorter than its header')
+            return None
+
+        magic, version, frame_number, chunk_number, chunk_count, jpeg_size, _ = (
+            HEADER.unpack_from(packet)
+        )
+        if magic != MAGIC or version != PROTOCOL_VERSION:
+            self.get_logger().debug('Ignoring UDP packet with an unknown header')
+            return None
+        if (
+            chunk_count == 0
+            or chunk_number >= chunk_count
+            or jpeg_size == 0
+            or jpeg_size > MAX_FRAME_SIZE
+        ):
+            self.get_logger().debug('Ignoring UDP packet with invalid frame metadata')
+            return None
+
+        chunk = packet[HEADER.size:]
+        frame = self.frames.get(frame_number)
+        if frame is None or (
+            frame['chunk_count'] != chunk_count or frame['jpeg_size'] != jpeg_size
+        ):
+            frame = {
+                'chunk_count': chunk_count,
+                'jpeg_size': jpeg_size,
+                'chunks': {},
+                'received': 0,
+                'last_seen': time.monotonic(),
+            }
+            self.frames[frame_number] = frame
+
+        frame['last_seen'] = time.monotonic()
+        if chunk_number not in frame['chunks']:
+            frame['chunks'][chunk_number] = chunk
+            frame['received'] += len(chunk)
+
+        if len(frame['chunks']) != chunk_count:
+            return None
+        if frame['received'] != jpeg_size:
+            self.frames.pop(frame_number, None)
+            self.get_logger().debug('Ignoring frame with an invalid JPEG size')
+            return None
+
+        jpeg = b''.join(frame['chunks'][index] for index in range(chunk_count))
+        self.frames.pop(frame_number, None)
+        return jpeg
+
+    def _remove_expired_frames(self):
+        cutoff = time.monotonic() - FRAME_TIMEOUT
+        expired = [
+            frame_number
+            for frame_number, frame in self.frames.items()
+            if frame['last_seen'] < cutoff
+        ]
+        for frame_number in expired:
+            self.frames.pop(frame_number, None)
+
     def receive_frame(self):
         try:
-            # Drain queued packets and process only the newest frame.
-            packet = None
-
+            # Drain queued packets so a slow ROS callback does not build a backlog.
+            newest_jpeg = None
             while True:
                 try:
                     packet, _ = self.socket.recvfrom(65535)
                 except BlockingIOError:
                     break
+                jpeg = self._reassemble_packet(packet)
+                if jpeg is not None:
+                    newest_jpeg = jpeg
 
-            if packet is None:
+            self._remove_expired_frames()
+            if newest_jpeg is None:
                 return
 
-            encoded = np.frombuffer(packet, dtype=np.uint8)
+            encoded = np.frombuffer(newest_jpeg, dtype=np.uint8)
             frame = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
 
             if frame is None:
-                self.get_logger().warning('Invalid JPEG frame')
+                self.get_logger().warning('Invalid reassembled JPEG frame')
                 return
 
             message = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
@@ -64,8 +138,7 @@ class UdpImagePublisher(Node):
             message.header.frame_id = self.frame_id
 
             self.publisher.publish(message)
-
-            self.get_logger().debug(f'Published frame')
+            self.get_logger().debug('Published frame')
 
         except OSError as error:
             self.get_logger().error(f'UDP receive error: {error}')
