@@ -1,0 +1,2 @@
+# Optional fallback when Picamera2 is unavailable.
+opencv-python-headless
