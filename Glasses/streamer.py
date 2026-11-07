@@ -97,7 +97,11 @@ def stop_hotspot() -> None:
         run("nmcli", "connection", "down", AP_CONNECTION)
     except RuntimeError as exc:
         message = str(exc).lower()
-        if "unknown connection" not in message and "not active" not in message:
+        if (
+            "unknown connection" not in message
+            and "not active" not in message
+            and "no active connection" not in message
+        ):
             raise
 
     try:
