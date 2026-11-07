@@ -25,6 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'yolo_processing = percepta_host.yolo_processing:main',
+            'motor_instructions = percepta_host.motor_instructions:main',
+            'dummy_publisher = percepta_host.dummy_publisher:main',
         ],
     },
 )
