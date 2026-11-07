@@ -50,11 +50,15 @@ def run(*args: str) -> str:
 
 def start_hotspot() -> None:
     """Create or replace the NetworkManager hotspot connection."""
-    try:
-        run("nmcli", "connection", "delete", AP_CONNECTION)
-    except RuntimeError as exc:
-        if "unknown connection" not in str(exc).lower():
-            raise
+    stop_hotspot()
+
+    run(
+        "ip",
+        "neigh",
+        "flush",
+        "dev",
+        AP_INTERFACE,
+    )
 
     run(
         "nmcli",
@@ -70,6 +74,7 @@ def start_hotspot() -> None:
         "password",
         AP_PASSWORD,
     )
+
     run(
         "nmcli",
         "connection",
@@ -84,6 +89,22 @@ def start_hotspot() -> None:
     )
     run("nmcli", "connection", "up", AP_CONNECTION)
     print(f"Hotspot {AP_SSID!r} is active on {AP_INTERFACE} ({AP_ADDRESS})")
+
+
+def stop_hotspot() -> None:
+    """Deactivate and remove the hotspot connection if it exists."""
+    try:
+        run("nmcli", "connection", "down", AP_CONNECTION)
+    except RuntimeError as exc:
+        message = str(exc).lower()
+        if "unknown connection" not in message and "not active" not in message:
+            raise
+
+    try:
+        run("nmcli", "connection", "delete", AP_CONNECTION)
+    except RuntimeError as exc:
+        if "unknown connection" not in str(exc).lower():
+            raise
 
 
 def lease_files() -> Iterator[Path]:
@@ -103,6 +124,27 @@ def lease_files() -> Iterator[Path]:
 
 def first_client_ip(seen_ips: set[str]) -> str | None:
     """Return the first newly observed DHCP client address."""
+    try:
+        neighbors = run("ip", "-4", "neigh", "show", "dev", AP_INTERFACE)
+    except RuntimeError:
+        neighbors = ""
+    else:
+        for line in neighbors.splitlines():
+            fields = line.split()
+            if not fields or fields[-1:] in (["FAILED"], ["INCOMPLETE"]):
+                continue
+            ip = fields[0]
+            try:
+                ipaddress.ip_address(ip)
+            except ValueError:
+                continue
+            if ip != AP_ADDRESS and ip not in seen_ips:
+                seen_ips.add(ip)
+                return ip
+        # A readable neighbor table is authoritative. Lease files can retain
+        # addresses from a previous hotspot session.
+        return None
+
     for path in lease_files():
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
@@ -121,28 +163,16 @@ def first_client_ip(seen_ips: set[str]) -> str | None:
                 seen_ips.add(ip)
                 return ip
 
-    # This fallback helps when dnsmasq leases are not readable in a container.
-    try:
-        neighbors = run("ip", "-4", "neigh", "show", "dev", AP_INTERFACE)
-    except RuntimeError:
-        return None
-    for line in neighbors.splitlines():
-        fields = line.split()
-        if fields and fields[0] != AP_ADDRESS and fields[-1:] != ["FAILED"]:
-            ip = fields[0]
-            try:
-                ipaddress.ip_address(ip)
-            except ValueError:
-                continue
-            if ip not in seen_ips:
-                seen_ips.add(ip)
-                return ip
     return None
 
 
 def wait_for_first_client() -> str:
     seen_ips: set[str] = set()
     deadline = time.monotonic() + LEASE_TIMEOUT if LEASE_TIMEOUT > 0 else None
+    try:
+        CLIENT_IP_FILE.unlink()
+    except FileNotFoundError:
+        pass
     print("Waiting for the first device to join the hotspot...")
     while deadline is None or time.monotonic() < deadline:
         ip = first_client_ip(seen_ips)
@@ -234,9 +264,12 @@ def stream_jpegs(destination_ip: str) -> None:
 
 
 def main() -> None:
-    start_hotspot()
-    client_ip = wait_for_first_client()
-    stream_jpegs(client_ip)
+    try:
+        start_hotspot()
+        client_ip = wait_for_first_client()
+        stream_jpegs(client_ip)
+    finally:
+        stop_hotspot()
 
 
 if __name__ == "__main__":

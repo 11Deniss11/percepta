@@ -8,7 +8,7 @@
 	"workspaceFolder": "/workspace",
 	"runArgs": [
 		"--network=host",
-		"--ipc=host",
+		"--ipc=host"
 		// "--device=/dev/video0"
 	],
 	"containerEnv": {
