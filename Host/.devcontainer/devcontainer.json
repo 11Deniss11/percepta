@@ -9,7 +9,7 @@
 	"runArgs": [
 		"--net=host",
 		"--ipc=host",
-		"--device=/dev/video0"
+		// "--device=/dev/video0"
 	],
 	"containerEnv": {
 		"DISPLAY": "${localEnv:DISPLAY}"
