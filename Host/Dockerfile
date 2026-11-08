@@ -36,7 +36,7 @@ WORKDIR /workspace
 
 # The devcontainer publishes this UDP port to the laptop's network interfaces.
 EXPOSE 5000/udp
-EXPOSE 5005/udp
+EXPOSE 5005/tcp
 EXPOSE 11434/tcp
 
 # Automatically source ROS2 and start Ollama in the background when a terminal opens
