@@ -35,7 +35,7 @@ class QwenNode(Node):
         self.latest_image_msg = None
         self.bridge = CvBridge()
 
-        self.get_logger().info("Qwen 0.5B ROS2 Node initialized. Waiting for prompts on '/llm_prompt'...")
+        self.get_logger().info("Qwen3.5 2B ROS2 Node initialized. Waiting for prompts on '/llm_prompt'...")
         
 
     def image_callback(self, msg):
