@@ -1,30 +1,32 @@
 {
-    "name": "Percepta-Host-ROS2-Devcontainer",
-    "build": {
-        "context": "..",
-        "dockerfile": "../Dockerfile"
-    },
-    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-    "workspaceFolder": "/workspace",
-    "runArgs": [
-        "--ipc=host",
-        "-p", "5005:5005/udp"
-        // "--device=/dev/video0"
-    ],
-    "containerEnv": {
-        "DISPLAY": "${localEnv:DISPLAY}",
-        "ROS_DOMAIN_ID": "10",
-        "ROS_LOCALHOST_ONLY": "0"
-    },
-    "mounts": [
-        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
-    ],
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "ms-python.python",
-                "ms-iot.vscode-ros"
-            ]
-        }
-    }
+	"name": "Percepta-Host-ROS2-Devcontainer",
+	"build": {
+		"context": "..",
+		"dockerfile": "../Dockerfile"
+	},
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+	"workspaceFolder": "/workspace",
+	"runArgs": [
+		"--network=bridge",
+		"--publish=5000:5000/udp",
+        "-p", "5005:5005/udp",
+		"--ipc=host"
+		// "--device=/dev/video0"
+	],
+	"containerEnv": {
+		"DISPLAY": "${localEnv:DISPLAY}",
+		"ROS_DOMAIN_ID": "10",
+		"ROS_LOCALHOST_ONLY": "0"
+	},
+	"mounts": [
+		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-iot.vscode-ros"
+			]
+		}
+	}
 }

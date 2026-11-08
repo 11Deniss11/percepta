@@ -19,8 +19,7 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
 
 WORKDIR /workspace
 
-# The UDP image receiver listens on this port. Host networking is configured
-# by the devcontainer, so this is documentation rather than port forwarding.
+# The devcontainer publishes this UDP port to the laptop's network interfaces.
 EXPOSE 5000/udp
 EXPOSE 5005/udp
 
