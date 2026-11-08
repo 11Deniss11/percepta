@@ -15,7 +15,8 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
     colcon-common-extensions \
     SpeechRecognition \
     soundfile \
-    openai-whisper
+    openai-whisper \
+    ollama
 
 WORKDIR /workspace
 

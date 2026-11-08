@@ -29,6 +29,7 @@ setup(
             'motor_instructions = percepta_host.motor_instructions:main',
             'dummy_publisher = percepta_host.dummy_publisher:main',
             'speech_recognition = percepta_host.speech_recognition:main',
+            'llm = percepta_host.llm:main',
         ],
     },
 )
