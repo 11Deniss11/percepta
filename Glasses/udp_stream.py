@@ -27,7 +27,6 @@ def stream(config, destination_ip):
                 wait = next_frame_time - time.monotonic()
                 if wait > 0:
                     time.sleep(wait)
-                started = time.monotonic()
                 jpeg = capture_frame(camera)
                 if len(jpeg) > 0xFFFFFFFF:
                     raise ValueError("JPEG is too large for the UDP frame format")
@@ -51,8 +50,6 @@ def stream(config, destination_ip):
                     sock.sendto(packet, destination)
 
                 frame_number = (frame_number + 1) & 0xFFFFFFFF
-                next_frame_time = started + interval
-                if next_frame_time < time.monotonic():
-                    next_frame_time = time.monotonic()
+                next_frame_time = time.monotonic() + interval
         finally:
             close_camera(camera)

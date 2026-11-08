@@ -17,5 +17,6 @@ sudo python3 main.py
 
 The default transport is 10 FPS at 640x480, with JPEG quality 75. Set
 `FRAME_RATE`, `JPEG_WIDTH`, `JPEG_HEIGHT`, and `JPEG_QUALITY` to tune capture.
-The sender paces complete frames only; it does not delay individual UDP
-fragments, which keeps transport latency low.
+The sender waits between complete frames, but does not delay individual UDP
+fragments. This keeps transport latency low and prevents slow captures from
+causing a burst of immediately successive frames.
