@@ -7,8 +7,10 @@
 	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
 	"workspaceFolder": "/workspace",
 	"runArgs": [
-		"--network=host",
-		"--ipc=host",
+		"--network=bridge",
+		"--publish=5000:5000/udp",
+        "-p", "5005:5005/udp",
+		"--ipc=host"
 		// "--device=/dev/video0"
 	],
 	"containerEnv": {
