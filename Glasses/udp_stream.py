@@ -18,11 +18,15 @@ def stream(config, destination_ip):
     destination = (destination_ip, config.udp_port)
     interval = 1.0 / config.frame_rate if config.frame_rate > 0 else 0
     frame_number = 0
+    next_frame_time = time.monotonic()
     camera = open_camera(config)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1024 * 1024)
         try:
             while True:
+                wait = next_frame_time - time.monotonic()
+                if wait > 0:
+                    time.sleep(wait)
                 started = time.monotonic()
                 jpeg = capture_frame(camera)
                 if len(jpeg) > 0xFFFFFFFF:
@@ -45,11 +49,10 @@ def stream(config, destination_ip):
                         time.time_ns(),
                     ) + chunk
                     sock.sendto(packet, destination)
-                    time.sleep(0.001)
 
                 frame_number = (frame_number + 1) & 0xFFFFFFFF
-                remaining = interval - (time.monotonic() - started)
-                if remaining > 0:
-                    time.sleep(remaining)
+                next_frame_time = started + interval
+                if next_frame_time < time.monotonic():
+                    next_frame_time = time.monotonic()
         finally:
             close_camera(camera)

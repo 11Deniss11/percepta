@@ -15,8 +15,7 @@ Run the streamer on the Raspberry Pi with:
 sudo python3 main.py
 ```
 
-The default transport is 5 FPS at 640x480, with JPEG quality 75. `FRAME_RATE`
-can lower the rate, but the sender will never exceed 5 FPS. Set
-`JPEG_WIDTH`, `JPEG_HEIGHT`, and `JPEG_QUALITY` to tune capture.
+The default transport is 10 FPS at 640x480, with JPEG quality 75. Set
+`FRAME_RATE`, `JPEG_WIDTH`, `JPEG_HEIGHT`, and `JPEG_QUALITY` to tune capture.
 The sender paces complete frames only; it does not delay individual UDP
 fragments, which keeps transport latency low.
