@@ -12,12 +12,16 @@ RUN apt-get update && apt-get install -y \
 RUN python3 -m pip install --break-system-packages --no-cache-dir \
     "numpy<2" "setuptools<81" ultralytics \
     "clip @ git+https://github.com/ultralytics/CLIP.git" \
-    colcon-common-extensions
+    colcon-common-extensions \
+    SpeechRecognition \
+    soundfile \
+    openai-whisper
 
 WORKDIR /workspace
 
 # The devcontainer publishes this UDP port to the laptop's network interfaces.
 EXPOSE 5000/udp
+EXPOSE 5005/udp
 
 RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 

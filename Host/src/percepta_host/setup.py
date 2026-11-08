@@ -28,6 +28,7 @@ setup(
             'yolo_processing = percepta_host.yolo_processing:main',
             'motor_instructions = percepta_host.motor_instructions:main',
             'dummy_publisher = percepta_host.dummy_publisher:main',
+            'speech_recognition = percepta_host.speech_recognition:main',
         ],
     },
 )

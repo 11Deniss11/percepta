@@ -28,7 +28,8 @@ class MotorInstructions(Node):
         # Arguments: (MessageType, 'topic_name', callback_function, qos_depth)
         self.subscription = self.create_subscription(
             String,
-            '/dummy_instructions',
+            #'/dummy_instructions',
+            '/motor_instructions_topic',
             self.instructions_callback,
             10  # Max number of stored messages while wiaitng for processing to finish
         )
