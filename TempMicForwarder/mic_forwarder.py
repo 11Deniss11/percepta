@@ -11,40 +11,7 @@ RATE = 44100
 BLOCK_SIZE = 1024
 
 
-def list_devices():
-    for number, device in enumerate(sd.query_devices()):
-        if device["max_input_channels"] > 0:
-            print(number, device["name"])
-
-
-def get_device(value):
-    if value is None:
-        return None
-
-    try:
-        return int(value)
-    except ValueError:
-        pass
-
-    for number, device in enumerate(sd.query_devices()):
-        if value.lower() in device["name"].lower():
-            return number
-
-    raise ValueError("Microphone not found: " + value)
-
-
 def main():
-    if "--list-devices" in sys.argv:
-        list_devices()
-        return
-
-    device = None
-    if "--device" in sys.argv:
-        position = sys.argv.index("--device") + 1
-        if position >= len(sys.argv):
-            raise ValueError("--device needs a value")
-        device = get_device(sys.argv[position])
-
     while True:
         try:
             print("Connecting to %s:%d..." % (HOST, PORT))
@@ -56,7 +23,6 @@ def main():
                 stream = sd.RawInputStream(
                     samplerate=RATE,
                     blocksize=BLOCK_SIZE,
-                    device=device,
                     channels=1,
                     dtype="int16",
                 )
