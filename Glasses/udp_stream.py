@@ -51,6 +51,9 @@ def stream(config, destination_ip):
                         time.time_ns(),
                     ) + chunk
                     sock.sendto(packet, destination)
+                    # A tiny gap prevents Wi-Fi bursts from dropping fragments.
+                    if config.chunk_delay > 0:
+                        time.sleep(config.chunk_delay)
 
                 frame_number = (frame_number + 1) & 0xFFFFFFFF
                 next_frame_time = started + interval

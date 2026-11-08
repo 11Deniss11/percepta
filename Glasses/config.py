@@ -17,6 +17,7 @@ class StreamConfig:
         # Five frames per second prevents the sender from creating a backlog.
         self.frame_rate = min(max(float(os.getenv("FRAME_RATE", "5")), 0.1), 5)
         self.chunk_size = int(os.getenv("CHUNK_SIZE", "1200"))
+        self.chunk_delay = float(os.getenv("CHUNK_DELAY", "0.0002"))
         self.lease_timeout = float(os.getenv("LEASE_TIMEOUT", "300"))
         self.client_ip_file = Path(
             os.getenv("CLIENT_IP_FILE", "first_client_ip.txt")
