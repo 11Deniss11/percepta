@@ -60,8 +60,8 @@ def stream(config, destination_ip):
                         frame_sent = False
                         break
 
-                if frame_sent:
-                    print(f"Sent frame {frame_number}", flush=True)
+                # if frame_sent:
+                #     print(f"Sent frame {frame_number}", flush=True)
                 frame_number = (frame_number + 1) & 0xFFFFFFFF
                 next_frame_time = time.monotonic() + interval
         finally:

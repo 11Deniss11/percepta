@@ -187,7 +187,7 @@ class UdpImagePublisher(Node):
 
             self.publisher.publish(message)
             self.published_frames += 1
-            self.get_logger().debug('Published frame')
+            # self.get_logger().debug('Published frame')
         except OSError as error:
             self.get_logger().error(f'Image publishing error: {error}')
 
