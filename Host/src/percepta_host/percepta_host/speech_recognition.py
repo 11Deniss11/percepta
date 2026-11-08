@@ -20,38 +20,41 @@ class UDPAudioSource(sr.AudioSource):
         
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((self.udp_ip, self.udp_port))
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536) # Larger buffer
         
-        # Set a timeout so recvfrom doesn't block forever, but doesn't instantly crash
         self.sock.settimeout(0.1)
-        self.stream = self.UDPStream(self.sock)
+        self.stream = UDPStream(self.sock)
 
-    class UDPStream:
-        def __init__(self, sock):
-            self.sock = sock
-            self.pending = deque()
-            self.packet_count = 0
+    def __enter__(self):
+        return self
 
-        def read(self, size):
-            while not self.pending:
-                try:
-                        data, addr = self.sock.recvfrom(4096)
-                        if not data:
-                            continue
-                        print(".", end="", flush=True)
-                        self.packet_count += 1
-                        self.pending.append(data)
-                except (socket.timeout, BlockingIOError):
-                    return b'\x00' * size
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.sock.close()
 
-            packet = self.pending.popleft()
-            if len(packet) <= size:
-                return packet.ljust(size, b'\x00')
 
-            chunk = packet[:size]
-            remainder = packet[size:]
-            if remainder:
-                self.pending.appendleft(remainder)
-            return chunk
+class UDPStream:
+    def __init__(self, sock):
+        self.sock = sock
+        self.buffer = b''
+        self.packet_count = 0
+
+    def read(self, size):
+        # Keep receiving until we have exactly enough bytes
+        while len(self.buffer) < size:
+            try:
+                data, addr = self.sock.recvfrom(4096)
+                if data:
+                    print(".", end="", flush=True)
+                    self.buffer += data
+                    self.packet_count += 1
+            except (socket.timeout, BlockingIOError):
+                # Do NOT return silence. Just keep waiting for the next packet.
+                continue
+
+        # Slice off exactly the requested amount and keep the remainder
+        chunk = self.buffer[:size]
+        self.buffer = self.buffer[size:]
+        return chunk
 
     def __enter__(self):
         return self
