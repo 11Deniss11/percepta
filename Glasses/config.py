@@ -14,7 +14,8 @@ class StreamConfig:
         self.jpeg_width = int(os.getenv("JPEG_WIDTH", "640"))
         self.jpeg_height = int(os.getenv("JPEG_HEIGHT", "480"))
         self.jpeg_quality = int(os.getenv("JPEG_QUALITY", "75"))
-        self.frame_rate = float(os.getenv("FRAME_RATE", "10"))
+        # Five frames per second prevents the sender from creating a backlog.
+        self.frame_rate = min(max(float(os.getenv("FRAME_RATE", "5")), 0.1), 5)
         self.chunk_size = int(os.getenv("CHUNK_SIZE", "1200"))
         self.lease_timeout = float(os.getenv("LEASE_TIMEOUT", "300"))
         self.client_ip_file = Path(
