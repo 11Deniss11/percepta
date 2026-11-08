@@ -21,7 +21,8 @@ def stream(config, destination_ip):
     next_frame_time = time.monotonic()
     camera = open_camera(config)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1024 * 1024)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 64 * 1024)
+        sock.settimeout(0.05)
         try:
             while True:
                 wait = next_frame_time - time.monotonic()
@@ -37,6 +38,7 @@ def stream(config, destination_ip):
                 if len(chunks) > 65535:
                     raise ValueError("JPEG is too large for the UDP frame format")
 
+                frame_sent = True
                 for chunk_number, chunk in enumerate(chunks):
                     packet = HEADER.pack(
                         MAGIC,
@@ -47,9 +49,19 @@ def stream(config, destination_ip):
                         len(jpeg),
                         time.time_ns(),
                     ) + chunk
-                    sock.sendto(packet, destination)
+                    try:
+                        sock.sendto(packet, destination)
+                    except socket.timeout:
+                        print(
+                            f"Timed out sending frame {frame_number}, "
+                            f"chunk {chunk_number}; dropping frame",
+                            flush=True,
+                        )
+                        frame_sent = False
+                        break
 
-                print(f"Sent frame {frame_number}", flush=True)
+                if frame_sent:
+                    print(f"Sent frame {frame_number}", flush=True)
                 frame_number = (frame_number + 1) & 0xFFFFFFFF
                 next_frame_time = time.monotonic() + interval
         finally:

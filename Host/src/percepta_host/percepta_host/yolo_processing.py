@@ -48,7 +48,7 @@ class YoloProcessing(Node):
                 center_x = (x1 + x2) / 2
                 center_y = (y1 + y2) / 2
                 confidence = float(box.conf[0])
-                self.get_logger().info(
+                self.get_logger().debug(
                     f'Hand coordinates: center=({center_x:.1f}, {center_y:.1f}), '
                     f'box=({x1:.1f}, {y1:.1f}, {x2:.1f}, {y2:.1f}), '
                     f'confidence={confidence:.3f}'

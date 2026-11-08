@@ -1,5 +1,6 @@
 import socket
 import struct
+import threading
 import time
 
 import cv2
@@ -38,8 +39,11 @@ class UdpImagePublisher(Node):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
         self.socket.bind((address, port))
-        self.socket.setblocking(False)
+        self.socket.settimeout(0.1)
         self.frames = {}
+        self._latest_jpeg = None
+        self._frame_lock = threading.Lock()
+        self._receiver_stop = threading.Event()
         self.received_frames = 0
         self.published_frames = 0
         self.last_report = time.monotonic()
@@ -53,6 +57,12 @@ class UdpImagePublisher(Node):
         self.publisher = self.create_publisher(Image, topic, qos)
 
         self.timer = self.create_timer(FRAME_POLL_INTERVAL, self.receive_frame)
+        self.receiver_thread = threading.Thread(
+            target=self._receive_packets,
+            name='udp-receiver',
+            daemon=True,
+        )
+        self.receiver_thread.start()
 
         self.get_logger().info(
             f'Receiving JPEG frames on udp://{address}:{port}, '
@@ -119,35 +129,46 @@ class UdpImagePublisher(Node):
         for frame_number in expired:
             self.frames.pop(frame_number, None)
 
+    def _receive_packets(self):
+        while not self._receiver_stop.is_set():
+            try:
+                packet, _ = self.socket.recvfrom(65535)
+            except socket.timeout:
+                self._remove_expired_frames()
+                continue
+            except OSError as error:
+                if not self._receiver_stop.is_set():
+                    self.get_logger().error(f'UDP receive error: {error}')
+                return
+
+            if len(packet) >= HEADER.size:
+                frame_number = HEADER.unpack_from(packet)[2]
+                chunk_number = HEADER.unpack_from(packet)[3]
+                self.get_logger().debug(
+                    f'Received UDP packet for frame {frame_number}, '
+                    f'chunk {chunk_number}'
+                )
+            jpeg = self._reassemble_packet(packet)
+            if jpeg is not None:
+                with self._frame_lock:
+                    self.received_frames += 1
+                    self._latest_jpeg = jpeg
+
     def receive_frame(self):
         try:
-            # Drain queued packets so a slow ROS callback does not build a backlog.
-            newest_jpeg = None
-            while True:
-                try:
-                    packet, _ = self.socket.recvfrom(65535)
-                except BlockingIOError:
-                    break
-                if len(packet) >= HEADER.size:
-                    frame_number = HEADER.unpack_from(packet)[2]
-                    chunk_number = HEADER.unpack_from(packet)[3]
-                    self.get_logger().info(
-                        f'Received UDP packet for frame {frame_number}, '
-                        f'chunk {chunk_number}'
-                    )
-                jpeg = self._reassemble_packet(packet)
-                if jpeg is not None:
-                    self.received_frames += 1
-                    newest_jpeg = jpeg
+            with self._frame_lock:
+                newest_jpeg = self._latest_jpeg
+                self._latest_jpeg = None
 
-            self._remove_expired_frames()
             now = time.monotonic()
             if now - self.last_report >= 10:
+                with self._frame_lock:
+                    received_frames = self.received_frames
+                    self.received_frames = 0
                 self.get_logger().info(
-                    f'Received {self.received_frames} complete frames, '
+                    f'Received {received_frames} complete frames, '
                     f'published {self.published_frames} in the last 10 seconds'
                 )
-                self.received_frames = 0
                 self.published_frames = 0
                 self.last_report = now
             if newest_jpeg is None:
@@ -167,12 +188,13 @@ class UdpImagePublisher(Node):
             self.publisher.publish(message)
             self.published_frames += 1
             self.get_logger().debug('Published frame')
-
         except OSError as error:
-            self.get_logger().error(f'UDP receive error: {error}')
+            self.get_logger().error(f'Image publishing error: {error}')
 
     def destroy_node(self):
+        self._receiver_stop.set()
         self.socket.close()
+        self.receiver_thread.join(timeout=1.0)
         super().destroy_node()
 
 
