@@ -20,3 +20,12 @@ class StreamConfig:
         self.client_ip_file = Path(
             os.getenv("CLIENT_IP_FILE", "first_client_ip.txt")
         )
+        self.audio_port = int(os.getenv("AUDIO_PORT", "5005"))
+        self.audio_bluetooth_mac = os.getenv("AUDIO_BLUETOOTH_MAC", "8C:58:23:49:78:F5")
+        self.audio_alsa_device = os.getenv("AUDIO_ALSA_DEVICE", "")
+        self.audio_sample_rate = int(os.getenv("AUDIO_SAMPLE_RATE", "44100"))
+        self.audio_channels = int(os.getenv("AUDIO_CHANNELS", "1"))
+        self.audio_chunk_size = int(os.getenv("AUDIO_CHUNK_SIZE", "4096"))
+        self.audio_reconnect_delay = float(
+            os.getenv("AUDIO_RECONNECT_DELAY", "3")
+        )

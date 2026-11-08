@@ -21,7 +21,7 @@ WORKDIR /workspace
 
 # The devcontainer publishes this UDP port to the laptop's network interfaces.
 EXPOSE 5000/udp
-EXPOSE 5005/udp
+EXPOSE 5005/tcp
 
 RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 
