@@ -25,6 +25,7 @@ JPEG_HEIGHT = int(os.getenv("JPEG_HEIGHT", "480"))
 JPEG_QUALITY = int(os.getenv("JPEG_QUALITY", "75"))
 FRAME_RATE = float(os.getenv("FRAME_RATE", "10"))
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1200"))
+CHUNK_DELAY = float(os.getenv("CHUNK_DELAY", "0.001"))
 LEASE_TIMEOUT = float(os.getenv("LEASE_TIMEOUT", "300"))
 CLIENT_IP_FILE = Path(os.getenv("CLIENT_IP_FILE", "first_client_ip.txt"))
 
@@ -265,6 +266,8 @@ def stream_jpegs(destination_ip: str) -> None:
                     time.time_ns(),
                 ) + chunk
                 sock.sendto(packet, destination)
+                if CHUNK_DELAY > 0:
+                    time.sleep(CHUNK_DELAY)
             frame_number = (frame_number + 1) & 0xFFFFFFFF
             remaining = interval - (time.monotonic() - started)
             if remaining > 0:

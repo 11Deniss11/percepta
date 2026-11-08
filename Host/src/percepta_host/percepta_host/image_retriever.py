@@ -38,6 +38,9 @@ class UdpImagePublisher(Node):
         self.socket.bind((address, port))
         self.socket.setblocking(False)
         self.frames = {}
+        self.received_frames = 0
+        self.published_frames = 0
+        self.last_report = time.monotonic()
 
         self.bridge = CvBridge()
         self.publisher = self.create_publisher(Image, topic, 10)
@@ -120,9 +123,19 @@ class UdpImagePublisher(Node):
                     break
                 jpeg = self._reassemble_packet(packet)
                 if jpeg is not None:
+                    self.received_frames += 1
                     newest_jpeg = jpeg
 
             self._remove_expired_frames()
+            now = time.monotonic()
+            if now - self.last_report >= 10:
+                self.get_logger().info(
+                    f'Received {self.received_frames} complete frames, '
+                    f'published {self.published_frames} in the last 10 seconds'
+                )
+                self.received_frames = 0
+                self.published_frames = 0
+                self.last_report = now
             if newest_jpeg is None:
                 return
 
@@ -138,6 +151,7 @@ class UdpImagePublisher(Node):
             message.header.frame_id = self.frame_id
 
             self.publisher.publish(message)
+            self.published_frames += 1
             self.get_logger().debug('Published frame')
 
         except OSError as error:
