@@ -128,6 +128,13 @@ class UdpImagePublisher(Node):
                     packet, _ = self.socket.recvfrom(65535)
                 except BlockingIOError:
                     break
+                if len(packet) >= HEADER.size:
+                    frame_number = HEADER.unpack_from(packet)[2]
+                    chunk_number = HEADER.unpack_from(packet)[3]
+                    self.get_logger().info(
+                        f'Received UDP packet for frame {frame_number}, '
+                        f'chunk {chunk_number}'
+                    )
                 jpeg = self._reassemble_packet(packet)
                 if jpeg is not None:
                     self.received_frames += 1

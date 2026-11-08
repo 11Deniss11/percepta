@@ -49,6 +49,7 @@ def stream(config, destination_ip):
                     ) + chunk
                     sock.sendto(packet, destination)
 
+                print(f"Sent frame {frame_number}", flush=True)
                 frame_number = (frame_number + 1) & 0xFFFFFFFF
                 next_frame_time = time.monotonic() + interval
         finally:
