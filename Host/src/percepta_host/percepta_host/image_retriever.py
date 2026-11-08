@@ -7,6 +7,7 @@ import numpy as np
 import rclpy
 from cv_bridge import CvBridge
 from rclpy.node import Node
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import Image
 
 
@@ -17,6 +18,7 @@ PROTOCOL_VERSION = 2
 HEADER = struct.Struct('!4sBIIHIQ')
 MAX_FRAME_SIZE = 64 * 1024 * 1024
 FRAME_TIMEOUT = 1.0
+FRAME_POLL_INTERVAL = 1.0 / 120.0
 
 
 class UdpImagePublisher(Node):
@@ -43,9 +45,14 @@ class UdpImagePublisher(Node):
         self.last_report = time.monotonic()
 
         self.bridge = CvBridge()
-        self.publisher = self.create_publisher(Image, topic, 10)
+        qos = QoSProfile(
+            depth=1,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        )
+        self.publisher = self.create_publisher(Image, topic, qos)
 
-        self.timer = self.create_timer(1.0 / 30.0, self.receive_frame)
+        self.timer = self.create_timer(FRAME_POLL_INTERVAL, self.receive_frame)
 
         self.get_logger().info(
             f'Receiving JPEG frames on udp://{address}:{port}, '

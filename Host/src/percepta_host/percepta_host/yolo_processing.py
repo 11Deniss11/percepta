@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from ultralytics import YOLOWorld
@@ -11,19 +12,24 @@ class YoloProcessing(Node):
 
         self.bridge = CvBridge()
         self.model = YOLOWorld('yolov8s-worldv2.pt')
-        self.model.set_classes(['cellphone', 'hand'])
+        self.model.set_classes(['hand'])
 
+        qos = QoSProfile(
+            depth=1,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        )
         self.subscription = self.create_subscription(
             Image,
             '/image_raw',
             self.image_callback,
-            10
+            qos
         )
 
         self.publisher = self.create_publisher(
             Image,
             '/camera/yolo_output',
-            10
+            qos
         )
 
         self.get_logger().info('YOLO processing node started')
@@ -36,7 +42,8 @@ class YoloProcessing(Node):
             )
 
             results = self.model(frame, verbose=False)
-            annotated_frame = results[0].plot()
+            result = results[0]
+            annotated_frame = result.plot()
 
             output_msg = self.bridge.cv2_to_imgmsg(
                 annotated_frame,
