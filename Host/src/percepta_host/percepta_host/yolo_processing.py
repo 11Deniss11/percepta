@@ -41,7 +41,7 @@ class YoloProcessing(Node):
                 desired_encoding='bgr8'
             )
 
-            results = self.model(frame, conf=0.15, verbose=False)
+            results = self.model(frame, conf=0.07, verbose=False)
             result = results[0]
             for box in result.boxes:
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
