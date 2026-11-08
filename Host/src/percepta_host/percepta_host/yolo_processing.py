@@ -43,6 +43,16 @@ class YoloProcessing(Node):
 
             results = self.model(frame, verbose=False)
             result = results[0]
+            for box in result.boxes:
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                center_x = (x1 + x2) / 2
+                center_y = (y1 + y2) / 2
+                confidence = float(box.conf[0])
+                self.get_logger().info(
+                    f'Hand coordinates: center=({center_x:.1f}, {center_y:.1f}), '
+                    f'box=({x1:.1f}, {y1:.1f}, {x2:.1f}, {y2:.1f}), '
+                    f'confidence={confidence:.3f}'
+                )
             annotated_frame = result.plot()
 
             output_msg = self.bridge.cv2_to_imgmsg(
