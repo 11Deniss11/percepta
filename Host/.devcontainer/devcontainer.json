@@ -9,7 +9,7 @@
 	"runArgs": [
 		"--network=bridge",
 		"--publish=5000:5000/udp",
-        "-p", "5005:5005/udp",
+        "-p", "5005:5005/",
 		"--ipc=host"
 		// "--device=/dev/video0"
 	],

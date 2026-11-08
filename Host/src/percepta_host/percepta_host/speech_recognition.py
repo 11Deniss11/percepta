@@ -5,36 +5,40 @@ from std_msgs.msg import String
 import socket
 import threading
 import speech_recognition as sr
-from collections import deque
 
-class UDPAudioSource(sr.AudioSource):
-    """A custom audio source that reads from a UDP socket instead of a microphone."""
-    def __init__(self, udp_ip="0.0.0.0", udp_port=5005): 
-        self.udp_ip = udp_ip
-        self.udp_port = udp_port
+class TCPAudioSource(sr.AudioSource):
+    """A custom audio source that reads from a TCP socket server instead of a microphone."""
+    def __init__(self, tcp_ip="0.0.0.0", tcp_port=5005): 
+        self.tcp_ip = tcp_ip
+        self.tcp_port = tcp_port
         
         # Audio configuration (must match Sender)
         self.CHUNK = 1024
         self.SAMPLE_RATE = 44100
         self.SAMPLE_WIDTH = 2
         
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind((self.udp_ip, self.udp_port))
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536) # Larger buffer
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Allows instant restart of the ROS node without "Address already in use" errors
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
+        self.sock.bind((self.tcp_ip, self.tcp_port))
+        self.sock.listen(1)
+        self.conn, self.addr = self.sock.accept()
         
-        self.sock.settimeout(0.1)
-        self.stream = UDPStream(self.sock)
+        self.conn.settimeout(0.1)
+        self.stream = TCPStream(self.conn)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if hasattr(self, 'conn'):
+            self.conn.close()
         self.sock.close()
 
 
-class UDPStream:
-    def __init__(self, sock):
-        self.sock = sock
+class TCPStream:
+    def __init__(self, conn):
+        self.conn = conn
         self.buffer = b''
         self.packet_count = 0
 
@@ -42,7 +46,9 @@ class UDPStream:
         # Keep receiving until we have exactly enough bytes
         while len(self.buffer) < size:
             try:
-                data, addr = self.sock.recvfrom(4096)
+                data = self.conn.recv(4096)
+                if not data:
+                    break
                 if data:
                     print(".", end="", flush=True)
                     self.buffer += data
@@ -56,11 +62,6 @@ class UDPStream:
         self.buffer = self.buffer[size:]
         return chunk
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.sock.close()
 
 class SpeechRecognition(Node):
     def __init__(self):
@@ -79,29 +80,20 @@ class SpeechRecognition(Node):
         self.listen_thread.start()
 
     def transcription_loop(self):
-        self.get_logger().info("Starting UDP Receiver & Transcriber on port 5005...")
+        self.get_logger().info("Starting TCP Receiver & Transcriber on port 5005...")
         
-        with UDPAudioSource() as source:
-            self.get_logger().info(
-                f"UDP socket bound on 0.0.0.0:5005 "
-                f"(send audio to this machine's UDP address)"
-            )
+        # This will block until the Windows sender connects
+        with TCPAudioSource() as source:
+            self.get_logger().info(f"TCP socket bound and connected on port 5005.")
             self.get_logger().info("Calibrating for background network static... (Wait 2 seconds)")
             self.recognizer.adjust_for_ambient_noise(source, duration=2)
-            if source.stream.packet_count == 0:
-                self.get_logger().warn(
-                    "No UDP audio packets received yet. Verify the sender uses this "
-                    "machine's reachable IP and UDP port 5005, not 127.0.0.1 from "
-                    "inside a different network namespace."
-                )
             
-            self.get_logger().info("Ready! Listening for UDP audio streams...")
+            self.get_logger().info("Ready! Listening for TCP audio streams...")
             
             # Loop while the ROS 2 system is running
             while rclpy.ok():
                 try:
                     # timeout=1.0 allows the loop to check rclpy.ok() periodically
-                    # rather than blocking indefinitely if there is no audio
                     audio = self.recognizer.listen(source, timeout=1.0)
                     
                     self.get_logger().debug("Processing speech chunk...")
