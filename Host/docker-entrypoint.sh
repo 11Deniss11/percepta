@@ -5,10 +5,7 @@ source /opt/ros/jazzy/setup.bash
 
 workspace=/workspace
 cd "$workspace"
-if [ ! -f "$workspace/install/setup.bash" ] ||
-   [ ! -f "$workspace/install/percepta_host/share/percepta_host/launch/host_nodes.launch.py" ]; then
-    colcon build --base-paths "$workspace/src"
-fi
+colcon build --base-paths "$workspace/src"
 
 source "$workspace/install/setup.bash"
 
@@ -29,6 +26,12 @@ fi
 ollama_url=http://127.0.0.1:11434/
 ollama_log=/tmp/ollama.log
 ollama_startup_timeout=${OLLAMA_STARTUP_TIMEOUT:-120}
+
+if compgen -G "/dev/nvidia*" >/dev/null; then
+    echo "NVIDIA device detected; Ollama will use CUDA when loading the model."
+else
+    echo "No NVIDIA device detected; Ollama will use CPU."
+fi
 
 if ! curl -fsS "$ollama_url" >/dev/null 2>&1; then
     : > "$ollama_log"
