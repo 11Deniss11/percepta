@@ -1,1 +1,5 @@
 sounddevice>=0.5,<1
+SpeechRecognition
+PyAudio
+openai-whisper
+soundfile

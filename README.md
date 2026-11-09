@@ -157,23 +157,57 @@ percepta/
 
 ## Hardware
 
-| Part | Used for | Qty | Approx. cost (CAD) |
+### Glasses module
+
+A clip-on module that attaches to the user's own glasses. The Raspberry Pi and the battery sit on opposite temples to balance the weight, and the camera faces forward from a plate on the front of the frame.
+
+| Part | Used for | Qty | Price (USD) |
 |---|---|---|---|
-| TODO: Raspberry Pi model | Glasses compute + Wi-Fi hotspot | 1 | TODO |
-| TODO: Camera module | Video capture | 1 | TODO |
-| LOLIN C3 Mini (ESP32-C3) | Wristband controller | 1 | TODO |
-| TODO: Vibration motor type | Directional haptics (left, right, up, down) | 4 | TODO |
-| TODO: Motor driver | Powers the motors from the ESP32 | TODO | TODO |
-| TODO: Battery (glasses) | Power for the Pi | 1 | TODO |
-| TODO: Battery (wristband) | Power for the ESP32 + motors | 1 | TODO |
-| TODO: Glasses mount / enclosure | Clip-on housing for the camera module | 1 | TODO |
-| TODO: Wristband strap / enclosure | Holds motors against the wrist | 1 | TODO |
-| TODO: Microphone + speaker | Voice input and spoken replies | TODO | TODO |
-| **Total** | | | **TODO** |
+| Raspberry Pi Zero 2 W (with headers) | Captures and streams video, runs the Wi-Fi hotspot | 1 | $19.60 |
+| Pi camera module (OV5647 clone) | Forward-facing camera | 1 | ~$8.00 |
+| 3.7 V 500 mAh LiPo battery | Power | 1 | ~$5.00 |
+| Boost converter (3.7 V to 5 V) | Steps battery voltage up for the Pi | 1 | ~$1.50 |
+| 3D printing filament (~30 g) | Clips, cases and camera plate | 1 | ~$0.60 |
+| **Total** | | | **~$34.70** |
 
-**Host computer:** any laptop that can run Docker. TODO: list the laptop used for the demo (CPU, RAM, GPU yes/no).
+**3D printed parts**
 
-**Add schematics, diagrams, photos, etc for hardware.**
+- **Glasses clips and pins:** two pin-lock clips (one uses two pins) that attach the module to existing frames. The cases are glued onto the clips. The pins are chamfered, with a radius 0.1 mm smaller than the clip holes for a snug fit.
+- **Camera plate:** a hook-style plate over one lens of the glasses. The camera is held in with a heat-set insert, and the plate gives the ribbon cable a clean path back to the Pi.
+- **Pi case:** a simple box with an opening for the header wires.
+- **Battery case:** sized for the LiPo, with an opening at the top. TODO: update once we know how the battery is charged.
+
+### Haptic wristband
+
+Four vibration motors sit around the wrist, one for each direction (left, right, up, down). They're held between two fabric layers: a sock on the outside for compression, and pantyhose on the inside, which passes the vibration through without damping it. The ESP32, battery and charger share one 3D printed case.
+
+| Part | Used for | Qty | Price (USD) |
+|---|---|---|---|
+| ESP32-C3 Super Mini | Receives motor commands over Wi-Fi, drives the motors | 1 | $5.00 |
+| 10 mm coin vibration motor | Directional haptic feedback | 4 | $6.00 ($1.50 each) |
+| 3.7 V 400 mAh LiPo battery | Power | 1 | ~$5.00 (est.) |
+| LiPo charging board | Recharges the battery | 1 | ~$1.00 (est.) |
+| Solid core wire | Motor and power wiring | | ~$5.00 |
+| Sock | Outer layer, compression | 1 | ~$5.93 (CA$8.30) |
+| Pantyhose | Inner layer, against the skin | 1 | ~$5.72 (CA$8.00) |
+| 3D printing filament | Motor brackets and electronics case | | ~$1.00 |
+| Hot glue | Fixing motors to brackets and brackets to fabric | | negligible |
+| **Total** | | | **~$34.65** |
+
+**Assembly notes**
+
+- Each motor is hot glued onto a printed bracket. The bracket is then glued and stitched to the sock, and the pantyhose is stitched in on the inside.
+- The motor wires are laid in a zig-zag and partly stitched down so they spring back when the band stretches.
+- The motor grounds are soldered in a chain onto one shared ground wire. The charger board's ground joins the same wire.
+
+### Audio
+
+- **Microphone:** a DJI wireless mic for the demo. Any microphone the host can read works, including the laptop's built-in mic.
+- **Speaker:** the laptop's speakers for the demo. Any speaker works.
+
+**Kit total: ~$69 USD** (glasses ~$34.70 + wristband ~$34.65), not counting the host laptop.
+
+**To Do: Add schematics, diagrams, photos, etc for hardware.**
 
 ---
 
@@ -254,11 +288,11 @@ A camera on someone's face raises fair questions, so we designed for privacy fro
 | Name | Role |
 |---|---|
 | Denis Cuznetov | Software |
-| Jason TODO | Software |
+| Jason | Software |
 | Dhaya Srinivasan | Hardware |
 | Amitoj Phagura | Hardware |
-| Henry TODO | Hardware |
-| Henock TODO | Finance, pitch and business |
+| Henry | Hardware |
+| Henock | Finance, pitch and business |
 
 ---
 
