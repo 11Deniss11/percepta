@@ -1,0 +1,33 @@
+{
+	"name": "Percepta-Host-ROS2-Devcontainer (NVIDIA GPU)",
+	"build": {
+		"context": "..",
+		"dockerfile": "../Dockerfile"
+	},
+	"overrideCommand": false,
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+	"workspaceFolder": "/workspace",
+	"runArgs": [
+		"--network=bridge",
+		"--publish=5000:5000/udp",
+		"-p", "5005:5005/tcp",
+		"--ipc=host",
+		"--gpus=all"
+	],
+	"containerEnv": {
+		"DISPLAY": "${localEnv:DISPLAY}",
+		"ROS_DOMAIN_ID": "10",
+		"ROS_LOCALHOST_ONLY": "0"
+	},
+	"mounts": [
+		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-iot.vscode-ros"
+			]
+		}
+	}
+}
