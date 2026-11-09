@@ -288,11 +288,11 @@ A camera on someone's face raises fair questions, so we designed for privacy fro
 | Name | Role |
 |---|---|
 | Denis Cuznetov | Software |
-| Jason TODO | Software |
+| Jason | Software |
 | Dhaya Srinivasan | Hardware |
 | Amitoj Phagura | Hardware |
-| Henry TODO | Hardware |
-| Henock TODO | Finance, pitch and business |
+| Henry | Hardware |
+| Henock | Finance, pitch and business |
 
 ---
 
