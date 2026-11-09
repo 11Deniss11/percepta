@@ -12,6 +12,7 @@ def generate_launch_description():
         ('motor_instructions', 'motor_instructions'),
         ('speech_recognition', 'speech_recognition'),
         ('llm', 'llm'),
+        ('tts', 'tts'),
     ]
 
     launch_actions = [
