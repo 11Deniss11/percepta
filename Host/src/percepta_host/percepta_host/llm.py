@@ -9,6 +9,10 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge          
 import cv2
 
+
+OLLAMA_MODEL = 'qwen3.5:2b'
+
+
 class QwenNode(Node):
     def __init__(self):
         super().__init__('llm')
@@ -83,10 +87,13 @@ class QwenNode(Node):
         
         try:
             response = ollama.chat(
-                model='qwen3.5:2b', 
+                model=OLLAMA_MODEL,
                 messages=[system_msg, message_payload],
                 think=False,
                 options={
+                    # Ollama uses CUDA when a compatible GPU is available and
+                    # falls back to CPU when the container has no GPU access.
+                    'num_gpu': -1,
                     'reasoning_effort': 0,
                     'temperature': 0.0,   # Eliminates sampling randomness; fastest token selection
                     #'num_predict': 20,    # Hard cap on output length. It will cut off mid-sentence, but return instantly.

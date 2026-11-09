@@ -27,6 +27,12 @@ ollama_url=http://127.0.0.1:11434/
 ollama_log=/tmp/ollama.log
 ollama_startup_timeout=${OLLAMA_STARTUP_TIMEOUT:-120}
 
+if compgen -G "/dev/nvidia*" >/dev/null; then
+    echo "NVIDIA device detected; Ollama will use CUDA when loading the model."
+else
+    echo "No NVIDIA device detected; Ollama will use CPU."
+fi
+
 if ! curl -fsS "$ollama_url" >/dev/null 2>&1; then
     : > "$ollama_log"
     "$ollama_bin" serve >"$ollama_log" 2>&1 &
