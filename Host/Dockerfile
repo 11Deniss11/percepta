@@ -34,13 +34,17 @@ RUN nohup bash -c "ollama serve &" && sleep 10 && ollama pull qwen3.5:2b
 
 WORKDIR /workspace
 
+COPY src /workspace/src
+COPY docker-entrypoint.sh /usr/local/bin/percepta-host-entrypoint
+RUN chmod +x /usr/local/bin/percepta-host-entrypoint
+
 # The devcontainer publishes this UDP port to the laptop's network interfaces.
 EXPOSE 5000/udp
 EXPOSE 5005/tcp
 EXPOSE 11434/tcp
 
-# Automatically source ROS2 and start Ollama in the background when a terminal opens
-RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc && \
-    echo 'if ! curl -s http://localhost:11434/ > /dev/null; then ollama serve > /dev/null 2>&1 & sleep 2; fi' >> ~/.bashrc
+# Automatically source ROS2 when a terminal opens. The entrypoint owns runtime
+# startup for Ollama so that only one daemon is launched.
+RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 
-CMD ["bash"]
+ENTRYPOINT ["/usr/local/bin/percepta-host-entrypoint"]

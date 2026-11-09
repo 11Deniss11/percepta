@@ -44,18 +44,20 @@ class TCPStream:
 
     def read(self, size):
         # Keep receiving until we have exactly enough bytes
+        connection_closed = False
         while len(self.buffer) < size:
             try:
                 data = self.conn.recv(4096)
                 if not data:
+                    connection_closed = True
                     break
-                if data:
-                    print(".", end="", flush=True)
-                    self.buffer += data
-                    self.packet_count += 1
+                self.buffer += data
+                self.packet_count += 1
             except (socket.timeout, BlockingIOError):
-                # Do NOT return silence. Just keep waiting for the next packet.
                 continue
+
+        if connection_closed and len(self.buffer) < size:
+            raise ConnectionError("The TCP audio sender disconnected")
 
         # Slice off exactly the requested amount and keep the remainder
         chunk = self.buffer[:size]
@@ -69,10 +71,12 @@ class SpeechRecognition(Node):
         super().__init__('speech_recognition')
         
         # Publisher for the transcribed text
-        self.publisher_ = self.create_publisher(String, 'recognized_speech', 10)
+        self.publisher_ = self.create_publisher(String, 'llm_prompt', 10)
         
         self.recognizer = sr.Recognizer()
-        self.recognizer.pause_threshold = 0.5
+        # Allow normal pauses between words without splitting one utterance.
+        self.recognizer.pause_threshold = 1.0
+        self.recognizer.non_speaking_duration = 0.8
         
         # Run the blocking listener in a separate daemon thread
         self.listen_thread = threading.Thread(target=self.transcription_loop)
@@ -99,7 +103,7 @@ class SpeechRecognition(Node):
                     self.get_logger().debug("Processing speech chunk...")
                     text = self.recognizer.recognize_whisper(audio, model="tiny", language="english")
                     
-                    if text.strip():
+                    if "laura" in text.lower():
                         # Publish the result to the ROS network
                         msg = String()
                         msg.data = text.strip()
@@ -113,6 +117,9 @@ class SpeechRecognition(Node):
                     self.get_logger().warn("[Could not understand audio]")
                 except sr.RequestError as e:
                     self.get_logger().error(f"[Error]: {e}")
+                except ConnectionError as e:
+                    self.get_logger().error(f"[Audio connection lost]: {e}")
+                    break
                 except Exception as e:
                     self.get_logger().error(f"[Unexpected Error]: {e}")
 
