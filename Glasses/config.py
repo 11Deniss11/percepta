@@ -8,6 +8,9 @@ class StreamConfig:
         self.wifi_interface = os.getenv(
             "WIFI_INTERFACE", os.getenv("AP_INTERFACE", "wlan0")
         )
+        self.wifi_connection = os.getenv("WIFI_CONNECTION", "Percepta2")
+        self.wifi_ssid = os.getenv("WIFI_SSID", "Percepta2")
+        self.wifi_password = os.getenv("WIFI_PASSWORD", "percepta-camera")
         self.host_ip = os.getenv("HOST_IP")
         self.udp_port = int(os.getenv("UDP_PORT", "5000"))
         self.jpeg_width = int(os.getenv("JPEG_WIDTH", "640"))

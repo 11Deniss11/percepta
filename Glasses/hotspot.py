@@ -2,7 +2,8 @@ import ipaddress
 import subprocess
 import time
 
-def run(*args):
+def run(*args, redact=()):
+    command = " ".join(args)
     try:
         result = subprocess.run(
             args, check=True, text=True, capture_output=True
@@ -11,14 +12,39 @@ def run(*args):
         raise RuntimeError(f"Required command is not installed: {args[0]}") from exc
     except subprocess.CalledProcessError as exc:
         detail = (exc.stderr or exc.stdout).strip()
-        raise RuntimeError(f"{' '.join(args)} failed: {detail}") from exc
+        for secret in redact:
+            if secret:
+                command = command.replace(secret, "<redacted>")
+                detail = detail.replace(secret, "<redacted>")
+        raise RuntimeError(f"{command} failed: {detail}") from exc
     return result.stdout
 
 
 def start(config):
+    run("nmcli", "radio", "wifi", "on")
+    try:
+        run(
+            "nmcli", "connection", "up", "id", config.wifi_connection,
+            "ifname", config.wifi_interface,
+        )
+    except RuntimeError as exc:
+        if "unknown connection" not in str(exc).lower():
+            raise
+        run(
+            "nmcli", "device", "wifi", "connect", config.wifi_ssid,
+            "password", config.wifi_password,
+            "ifname", config.wifi_interface,
+            "name", config.wifi_connection,
+            redact=(config.wifi_password,),
+        )
+    run(
+        "nmcli", "connection", "modify", config.wifi_connection,
+        "connection.autoconnect", "yes",
+        "connection.interface-name", config.wifi_interface,
+    )
     print(
-        f"Using the existing Wi-Fi connection on {config.wifi_interface}; "
-        "the laptop provides the hotspot."
+        f"Connected to Wi-Fi {config.wifi_ssid!r} on "
+        f"{config.wifi_interface}; the laptop provides the hotspot."
     )
 
 
