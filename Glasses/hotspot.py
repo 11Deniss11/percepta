@@ -29,6 +29,11 @@ def start(config):
     )
     run(
         "nmcli", "connection", "modify", config.ap_connection,
+        "802-11-wireless.band", "bg",
+        "wifi-sec.key-mgmt", "wpa-psk",
+        "wifi-sec.proto", "rsn",
+        "wifi-sec.pairwise", "ccmp",
+        "wifi-sec.group", "ccmp",
         "ipv4.method", "shared",
         "ipv4.addresses", f"{config.ap_address}/24",
         "ipv6.method", "disabled",

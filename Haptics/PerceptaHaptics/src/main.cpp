@@ -3,15 +3,64 @@
 #include <WiFiUdp.h>
 
 #define LED_BUILTIN 8
+#define LEFT 0
+#define RIGHT 1
+#define BOTTOM 4
+#define TOP 3
 
 // Wi-Fi stuffs
-const char* wifi_ssid = "iPhone SE (2nd generation)";
-const char* wifi_password = "passpasspasspass";
+const char* wifi_ssid = "Percepta";
+const char* wifi_password = "percepta-camera";
 
 // UDP Configuration
 const int udpPort = 5000;
 WiFiUDP udp;
 char incomingPacket[255];
+
+bool connectToWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(false);
+  WiFi.disconnect();
+  delay(100);
+
+  Serial.printf("Connecting to Wi-Fi network \"%s\"", wifi_ssid);
+  WiFi.begin(wifi_ssid, wifi_password);
+
+  const unsigned long timeout = 15000;
+  const unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < timeout) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("Wi-Fi connected. IP address: ");
+    Serial.println(WiFi.localIP());
+    return true;
+  }
+
+  Serial.printf("Wi-Fi connection failed (status %d): ", WiFi.status());
+  switch (WiFi.status()) {
+    case WL_NO_SSID_AVAIL:
+      Serial.println("SSID not found. Make sure the network is 2.4 GHz.");
+      break;
+    case WL_CONNECT_FAILED:
+      Serial.println("authentication failed. Check WPA mode and password.");
+      break;
+    case WL_CONNECTION_LOST:
+      Serial.println("connection was lost.");
+      break;
+    case WL_DISCONNECTED:
+      Serial.println("disconnected or timed out.");
+      break;
+    default:
+      Serial.println("timed out.");
+      break;
+  }
+  return false;
+}
 
 void setup() {
   // Initialize the LED pin as a digital output
@@ -21,25 +70,27 @@ void setup() {
 
   delay(3000); // Give time for Serial to initialize
 
-  //Attempt to connect to Wi-Fi
-  Serial.print("Connecting to Wi-Fi");
-  WiFi.begin(wifi_ssid, wifi_password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  if (connectToWiFi()) {
+    udp.begin(udpPort);
+    Serial.printf("Listening on UDP port %d\n", udpPort);
   }
-
-  // Confirm connection
-  Serial.print("\nWiFi connected with IP address: ");
-  Serial.println(WiFi.localIP());
-
-  // Start listening for UDP packets
-  udp.begin(udpPort);
-  Serial.printf("Listening on UDP port %d\n", udpPort);
 }
 
 
 void loop() {
+  static unsigned long lastReconnectAttempt = 0;
+  if (WiFi.status() != WL_CONNECTED) {
+    if (millis() - lastReconnectAttempt >= 10000) {
+      lastReconnectAttempt = millis();
+      if (connectToWiFi()) {
+        udp.begin(udpPort);
+        Serial.printf("Listening on UDP port %d\n", udpPort);
+      }
+    }
+    delay(10);
+    return;
+  }
+
   // Check if a UDP packet has arrived
   int packetSize = udp.parsePacket();
   
