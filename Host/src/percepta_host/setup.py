@@ -30,6 +30,7 @@ setup(
             'dummy_publisher = percepta_host.dummy_publisher:main',
             'speech_recognition = percepta_host.speech_recognition:main',
             'llm = percepta_host.llm:main',
+            'tts = percepta_host.tts:main',
         ],
     },
 )

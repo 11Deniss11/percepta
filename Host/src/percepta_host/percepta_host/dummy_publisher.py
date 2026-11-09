@@ -12,7 +12,7 @@ class DummyPublisher(Node):
         # Create a publisher on topic '/dummy_instructions' with queue depth 10
         self.publisher_ = self.create_publisher(
             String,
-            'llm_prompt',
+            '/say',
             10
         )
 
