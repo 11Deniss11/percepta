@@ -1,3 +1,5 @@
+import os
+from glob import glob
 from setuptools import find_packages, setup
 
 package_name = 'percepta_host'
@@ -11,6 +13,9 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/host_nodes.launch.py']),
+        
+        # Add this line to copy all files inside the weights folder:
+        (os.path.join('share', package_name, 'weights'), glob('weights/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
