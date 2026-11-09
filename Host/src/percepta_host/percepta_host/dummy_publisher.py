@@ -12,7 +12,7 @@ class DummyPublisher(Node):
         # Create a publisher on topic '/dummy_instructions' with queue depth 10
         self.publisher_ = self.create_publisher(
             String,
-            '/say',
+            'llm_prompt',
             10
         )
 
@@ -29,7 +29,7 @@ class DummyPublisher(Node):
         # Construct and publish the message
         msg = String()
         #msg.data = f'0.0, 0.0, 100.0, 100.0'  # Dummy instruction data
-        msg.data = "Hey Laura, where is my soda?"
+        msg.data = "Have a nice day at school sweetheart!"
         
         self.publisher_.publish(msg)
         self.get_logger().info(f'Published: "{msg.data}"')

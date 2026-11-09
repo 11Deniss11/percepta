@@ -29,7 +29,7 @@ class QwenNode(Node):
         )
         
         # Publisher for the model's generated responses
-        self.publisher_ = self.create_publisher(String, 'llm_response', 10)
+        self.publisher_ = self.create_publisher(String, '/say', 10)
 
         # State variables for image processing
         self.latest_image_msg = None
@@ -96,9 +96,12 @@ class QwenNode(Node):
             # Publish the result
             reply_msg = String()
             reply_msg.data = reply_text
-            self.publisher_.publish(reply_msg)
+
+            if not "[" in reply_msg.data:
+                self.publisher_.publish(reply_msg)
             
-            self.get_logger().info("Response published successfully.")
+                self.get_logger().info("Response published successfully.")
+
             
         except Exception as e:
             self.get_logger().error(f"Failed to query Ollama: {str(e)}")
