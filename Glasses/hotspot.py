@@ -29,6 +29,16 @@ def start(config):
     )
     run(
         "nmcli", "connection", "modify", config.ap_connection,
+        "802-11-wireless.band", "bg",
+        "802-11-wireless.mode", "ap",
+        "802-11-wireless.channel", "6",                # FIX 1: Force a safe channel (1-11) for ESP32
+        "wifi-sec.key-mgmt", "wpa-psk",
+        "wifi-sec.psk", config.ap_password,
+        "wifi-sec.auth-alg", "open",
+        "wifi-sec.proto", "rsn",
+        "wifi-sec.pairwise", "ccmp",
+        "wifi-sec.group", "ccmp",
+        "wifi-sec.pmf", "0",                           # FIX 2: Disable PMF (802.11w) to prevent ESP32 auth failure
         "ipv4.method", "shared",
         "ipv4.addresses", f"{config.ap_address}/24",
         "ipv6.method", "disabled",
