@@ -10,6 +10,9 @@ from cv_bridge import CvBridge
 from ultralytics import YOLOWorld
 
 
+OBJECT_REACHED_DISTANCE = 30
+
+
 class YoloProcessing(Node):
     def __init__(self):
         super().__init__('yolo_processing_node')
@@ -83,6 +86,13 @@ class YoloProcessing(Node):
                 elif best_object is None or confidence > best_object[0]:
                     best_object = detection
 
+            if best_hand is not None and best_object is not None:
+                _, hand_x, hand_y = best_hand
+                _, object_x, object_y = best_object
+                if hypot(object_x - hand_x, object_y - hand_y) <= OBJECT_REACHED_DISTANCE:
+                    self.model.set_classes(['hand'])
+                    self.get_logger().info('Object reached; cleared YOLO search')
+
             self.coordinate_difference_publisher.publish(
                 self.coordinate_difference_message(msg, best_hand, best_object)
             )
@@ -113,7 +123,7 @@ class YoloProcessing(Node):
             _, object_x, object_y = object_detection
             difference_x = object_x - hand_x
             difference_y = object_y - hand_y
-            if hypot(difference_x, difference_y) >= 15:
+            if hypot(difference_x, difference_y) >= OBJECT_REACHED_DISTANCE:
                 coordinate_msg.point.x = difference_x
                 coordinate_msg.point.y = difference_y
         coordinate_msg.point.z = 0.0
