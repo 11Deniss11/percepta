@@ -13,7 +13,7 @@ import speech_recognition as sr
 
 
 # Network configuration
-TCP_IP = "172.26.212.68"     
+TCP_IP = "127.0.0.1"     
 TCP_PORT = 5005
 
 def connect_with_retry():
