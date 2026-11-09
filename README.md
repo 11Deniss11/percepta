@@ -2,7 +2,10 @@
 
 **A low-cost kit that helps people with central vision loss read, find and reach everyday objects on their own.**
 
-**To Do, add image of prototype here.**
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/ca6dff39-7acf-4207-bc04-1072bf952a16" alt="Percepta prototype" width="49%">
+  <img src="https://github.com/user-attachments/assets/49aed5a7-163d-42b5-91eb-253106156173" alt="Percepta prototype" width="49%">
+</p>
 
 Percepta was built at natHacks 2026 for people with age-related macular degeneration (AMD) and other forms of progressive central vision loss. People with AMD usually keep their side vision, so they can still move around a room. What they lose is the sharp centre of their vision, which makes it hard to read a label, find small objects or recognise a face. The kit has two parts: a small camera module that attaches onto any pair of glasses, and a vibration wristband. You ask a question out loud ("Laura, where are my keys?" or "Laura, what does this say?"). Percepta answers by voice, or guides your hand to the object with gentle vibrations on your wrist. All of the AI runs locally on a laptop, so no images or audio are sent to the cloud.
 
