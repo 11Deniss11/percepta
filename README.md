@@ -14,12 +14,11 @@ Percepta was built at natHacks 2026 for people with age-related macular degenera
 
 - [Features](#features)
 - [How It Works](#how-it-works)
+- [Pipeline, step by step](#pipeline-step-by-step)
 - [What's in This Repo](#whats-in-this-repo)
 - [Hardware](#hardware)
 - [Tech Stack](#tech-stack)
-- [Getting Started/Usage](#getting-started)
-- [Testing and Results](#testing-and-results)
-- [Privacy](#privacy)
+- [Getting Started](#getting-started)
 - [What's Next](#whats-next)
 - [Team](#team)
 - [Credits](#credits)
@@ -40,8 +39,6 @@ Percepta was built at natHacks 2026 for people with age-related macular degenera
 ---
 
 ## How It Works
-
-<!-- TODO: optional photo or GIF of a hand-guidance demo -->
 
 ```mermaid
 flowchart LR
@@ -159,7 +156,7 @@ percepta/
 
 ### Glasses module
 
-A clip-on module that attaches to the user's own glasses. The Raspberry Pi and the battery sit on opposite temples to balance the weight, and the camera faces forward from a plate on the front of the frame.
+An attachable module that attaches to the user's own glasses. The Raspberry Pi and the battery sit on opposite temples to balance the weight, and the camera faces forward from a plate on the front of the frame.
 
 | Part | Used for | Qty | Price (USD) |
 |---|---|---|---|
@@ -207,8 +204,6 @@ Four vibration motors sit around the wrist, one for each direction (left, right,
 
 **Kit total: ~$69 USD** (glasses ~$34.70 + wristband ~$34.65), not counting the host laptop.
 
-**To Do: Add schematics, diagrams, photos, etc for hardware.**
-
 ---
 
 ## Tech Stack
@@ -224,50 +219,64 @@ Four vibration motors sit around the wrist, one for each direction (left, right,
 
 ---
 
-## Getting Started / Usage
-**To Do: Jason wanted to do this.**
+## Getting Started
 
-1. Put on the glasses and the wristband, and start every part as described above.
-2. Wait for the host log to say `Ready! Listening for TCP audio streams...`.
-3. Start every request with the wake word **"Laura"**.
+**Before you start:** on the Windows laptop, install WSL 2 (`wsl --install`), Docker Desktop (WSL 2 backend), Python 3.10+ and Git. If you have an NVIDIA GPU, install the latest NVIDIA driver; it includes CUDA for WSL, and without it everything runs on the CPU. Flash the Raspberry Pi with Raspberry Pi OS (Bookworm) with SSH on, and install PlatformIO to flash the ESP32-C3. Turn on the laptop's **Mobile hotspot**, named `Percepta`, password `percepta-camera`, band **2.4 GHz**. The first run needs internet to download the models.
+
+**1. Laptop: clone and build**
+
+```powershell
+git clone https://github.com/11Deniss11/percepta.git
+cd percepta\Host
+docker build -t percepta-host .
+```
+
+**2. Laptop: start the host** (drop `--gpus all` if there's no NVIDIA GPU)
+
+```powershell
+docker run --rm -it --name percepta-host --gpus all -p 5000:5000/udp -p 5005:5005/tcp --ipc=host percepta-host
+```
+
+**3. Laptop: start the microphone and speaker** (each in its own window)
+
+```powershell
+cd TempMicForwarder
+pip install -r requirements.txt
+python speech_recognition_sender.py
+python tts_receiver.py
+```
+
+**4. Wristband: flash it, then point the host at it**
+
+```powershell
+cd Haptics\PerceptaHaptics
+pio run -t upload
+pio device monitor
+```
+
+The motors buzz once each (left, right, top, bottom), then the wristband prints its IP address. Send that IP to the host:
+
+```powershell
+docker exec -it percepta-host bash -c "source /opt/ros/jazzy/setup.bash && ros2 param set /motor_instructions udp_address <wristband-ip>"
+```
+
+**5. Glasses: start the camera**
+
+```bash
+ssh pi@<pi-ip>
+cd ~/Glasses
+sudo WIFI_SSID=Percepta WIFI_CONNECTION=Percepta python3 main.py
+```
+
+You can find the wristband's and the Pi's IP addresses under **Mobile hotspot → Connected devices**.
+
+**6. Use it.** Start every request with **"Laura"**:
 
 | Say | What happens |
 |---|---|
-| "Laura, where are my keys?" | The wristband guides your hand toward the keys and stops when you reach them. |
-| "Laura, what does this label say?" | Percepta reads the text out loud. |
-| "Laura, what colour is this shirt?" | Percepta answers out loud from the current camera view. |
-
----
-
-## Testing and Results
-
-**To Do: Do the tests and fill in results.**
-
-| What we measure | How we measure it | Result |
-|---|---|---|
-| Camera frame rate at the host | Read from the `udp_image_publisher` log (it reports frames received every 10 s) | TBD |
-| Delay: end of speech → start of spoken reply | Stopwatch or screen recording, median of N trials | TBD |
-| Delay: end of speech → first wristband vibration | Same method, median of N trials | TBD |
-| Wake word reliability | Out of N requests that say "Laura", how many are picked up; also count false triggers over 10 minutes of normal talk | TBD |
-| Object found | Out of N trials across a set of common objects (keys, mug, phone, pill bottle, remote), how often the object is detected within 10 s | TBD |
-| Guided reach success | Out of N trials with a tester's vision blocked or blurred, how often they touch the object within 30 s using haptics only | TBD |
-| Time to reach | Median seconds from the request to touching the object | TBD |
-| Reading accuracy | Percentage of words read correctly from sample labels, letters and menus | TBD |
-| Battery life | Hours of continuous use for the glasses and for the wristband | TBD |
-| Weight on the glasses | Grams added to the frames | TBD |
-| Parts cost | Total from the [Hardware](#hardware) table | TBD |
-
----
-
-## Privacy
-
-A camera on someone's face raises fair questions, so we designed for privacy from the start:
-
-- **Nothing leaves your devices.** Speech recognition, the language model, object detection and text-to-speech all run inside the local Docker container. No cloud APIs are called.
-- **No recordings are kept.** Camera frames are held in memory only long enough to process them and are never saved to disk. The only file written is a temporary WAV of the latest spoken reply, which is overwritten each time.
-- **A private network.** The glasses stream over their own password-protected hotspot rather than a public network.
-- **Only when asked.** The language model only looks at a frame when you say the wake word.
-
+| "Laura, where are my keys?" | The wristband guides your hand to the keys. |
+| "Laura, what does this label say?" | Percepta reads it out loud. |
+| "Laura, what colour is this shirt?" | Percepta answers from the camera view. |
 ---
 
 ## What's Next
@@ -307,12 +316,15 @@ A camera on someone's face raises fair questions, so we designed for privacy fro
 - [Piper TTS](https://github.com/rhasspy/piper)
 - [Picamera2](https://github.com/raspberrypi/picamera2), [OpenCV](https://opencv.org/), [sounddevice](https://python-sounddevice.readthedocs.io/)
 - [PlatformIO](https://platformio.org/) and [Arduino-ESP32](https://github.com/espressif/arduino-esp32)
-**To Do: Get Denis to add other sources used.**
 
 **Research**
 
-- Statistics on vision loss in Canada come from CNIB and its published reports.
-**To Do: Get Henock to add other links.**
+1. National Strategy for Eye Care
+Health Canada. (2026). National strategy for eye care. Government of Canada. (Cat. No. H22-4/48-2026E-PDF)
+2. Wearable electronic vision enhancement systems (wEVES) home trial
+Miller, A., Macnaughton, J., Crossland, M. D., & Latham, K. (2025). ‘Such a lot of bother’: Qualitative results of a home trial of a wearable electronic vision enhancement system for people with age-related macular degeneration. Ophthalmic and Physiological Optics, 45, 699–712. https://doi.org/10.1111/opo.13453
+3. Cost of Vision Loss and Blindness in Canada (summary report)
+Gordon, K. D. (2021). The cost of vision loss and blindness in Canada: Summary report. Canadian Council of the Blind. (Based on the report by Deloitte Access Economics, May 2021)
 
 ## License
 
