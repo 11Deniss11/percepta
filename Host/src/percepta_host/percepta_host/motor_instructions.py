@@ -1,10 +1,8 @@
 import rclpy
-from std_msgs.msg import String
+from geometry_msgs.msg import PointStamped
 from rclpy.node import Node
-import numpy as np
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 import socket
-
-#    To use this method, publish coordinates to /motor_instructions_topic, and this node will receive them and print them to the console.
 
 class MotorInstructions(Node):
 
@@ -24,48 +22,43 @@ class MotorInstructions(Node):
         # Initialize UDP socket
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+        qos = QoSProfile(
+            depth=1,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        )
+
         # Create the subscriber
         # Arguments: (MessageType, 'topic_name', callback_function, qos_depth)
         self.subscription = self.create_subscription(
-            String,
-            #'/dummy_instructions',
-            '/motor_instructions_topic',
+            PointStamped,
+            '/yolo_coordinate_difference',
             self.instructions_callback,
-            10  # Max number of stored messages while wiaitng for processing to finish
+            qos
         )
         self.subscription  # Prevent unused variable warning
 
     #Called whenever a message is received from /planar_instructions_topic
-    def instructions_callback(self, msg: String):
-        self.get_logger().info(f'Received instruction: "{msg.data}"')
-
-        msg.data = msg.data.strip()  # Remove any leading/trailing whitespace
-
-        # Split the string into a list of strings and convert to float
-        # Conatins screen x, y coordinates of the and and target
-        hand_x, hand_y, target_x, target_y = map(float, msg.data.split(","))
+    def instructions_callback(self, msg: PointStamped):
+        x_difference = msg.point.x
+        y_difference = msg.point.y
 
         motor_nx, motor_px, motor_ny, motor_py = 0.0, 0.0, 0.0, 0.0
 
-        #Direction pointing from hand to target in screenspace
-        direction_vector2 = np.array([target_x - hand_x, target_y - hand_y])
-
         #X motor magnitude
-        x_magnitude = min(max(abs(direction_vector2[0]), self.MIN_POWER_DIST), self.MAX_POWER_DIST)  # Clamp values
-        x_magnitude = (x_magnitude - self.MIN_POWER) / (1 - self.MIN_POWER) + self.MIN_POWER  # Normalize to [0, 1]
+        x_magnitude = self.motor_power(abs(x_difference))
 
         #Y motor magnitude
-        y_magnitude = min(max(abs(direction_vector2[1]), self.MIN_POWER_DIST), self.MAX_POWER_DIST)  # Clamp values
-        y_magnitude = (y_magnitude - self.MIN_POWER) / (1 - self.MIN_POWER) + self.MIN_POWER  # Normalize to [0, 1]
+        y_magnitude = self.motor_power(abs(y_difference))
 
         # Set x_motor powers
-        if direction_vector2[0] < 0:
+        if x_difference < 0:
             motor_nx = x_magnitude
         else:
             motor_px = x_magnitude
 
         # Set y_motor powers
-        if direction_vector2[1] < 0:
+        if y_difference < 0:
             motor_ny = y_magnitude
         else:
             motor_py = y_magnitude
@@ -81,6 +74,17 @@ class MotorInstructions(Node):
             self.get_logger().info(f'Sent UDP: {payload} to {target_ip}:{target_port}')
         except Exception as e:
             self.get_logger().error(f'UDP send failed: {e}')
+
+    def motor_power(self, distance: float) -> float:
+        if distance == 0:
+            return 0.0
+
+        distance = min(max(distance, self.MIN_POWER_DIST), self.MAX_POWER_DIST)
+        return self.MIN_POWER + (
+            (distance - self.MIN_POWER_DIST)
+            / (self.MAX_POWER_DIST - self.MIN_POWER_DIST)
+            * (1 - self.MIN_POWER)
+        )
 
         
 
