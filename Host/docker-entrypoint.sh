@@ -5,10 +5,7 @@ source /opt/ros/jazzy/setup.bash
 
 workspace=/workspace
 cd "$workspace"
-if [ ! -f "$workspace/install/setup.bash" ] ||
-   [ ! -f "$workspace/install/percepta_host/share/percepta_host/launch/host_nodes.launch.py" ]; then
-    colcon build --base-paths "$workspace/src"
-fi
+colcon build --base-paths "$workspace/src"
 
 source "$workspace/install/setup.bash"
 
