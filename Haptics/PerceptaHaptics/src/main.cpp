@@ -9,7 +9,7 @@
 #define TOP 3
 
 // Wi-Fi stuffs
-const char* wifi_ssid = "Percepta";
+const char* wifi_ssid = "Percepta2";
 const char* wifi_password = "percepta-camera";
 
 // UDP Configuration
@@ -21,8 +21,8 @@ bool connectToWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   WiFi.persistent(false);
-  WiFi.disconnect();
-  delay(100);
+  WiFi.disconnect(true);
+  delay(500);
 
   Serial.printf("Connecting to Wi-Fi network \"%s\"", wifi_ssid);
   WiFi.begin(wifi_ssid, wifi_password);
