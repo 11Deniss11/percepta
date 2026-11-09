@@ -14,7 +14,7 @@ import speech_recognition as sr
 
 # Network configuration
 TCP_IP = "172.26.212.68"     
-TCP_PORT = 5005          
+TCP_PORT = 5005
 
 def connect_with_retry():
     """Continuously attempts to connect to the ROS2 receiver, creating a new socket each time."""
