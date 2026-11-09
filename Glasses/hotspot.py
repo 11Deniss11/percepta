@@ -30,7 +30,10 @@ def start(config):
     run(
         "nmcli", "connection", "modify", config.ap_connection,
         "802-11-wireless.band", "bg",
+        "802-11-wireless.mode", "ap",
         "wifi-sec.key-mgmt", "wpa-psk",
+        "wifi-sec.psk", config.ap_password,
+        "wifi-sec.auth-alg", "open",
         "wifi-sec.proto", "rsn",
         "wifi-sec.pairwise", "ccmp",
         "wifi-sec.group", "ccmp",
