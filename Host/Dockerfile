@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y curl zstd && rm -rf /var/lib/apt/lists/
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
 # TTS stuff
-RUN pip install piper-tts
+RUN python3 -m pip install --break-system-packages --no-cache-dir piper-tts
 
 # Start the server temporarily in the background to pull the model into the image layers
 # Increased sleep to 10 seconds to ensure daemon is fully listening before pulling
@@ -43,7 +43,7 @@ RUN chmod +x /usr/local/bin/percepta-host-entrypoint
 
 # The devcontainer publishes this UDP port to the laptop's network interfaces.
 EXPOSE 5000/udp
-EXPOSE 5005/udp
+EXPOSE 5005/tcp
 EXPOSE 11434/tcp
 
 # Automatically source ROS2 when a terminal opens. The entrypoint owns runtime
