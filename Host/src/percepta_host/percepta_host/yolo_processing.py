@@ -5,7 +5,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import Image
-from std_msgs.msg import StringMultiArray
+from std_msgs.msg import String
 from cv_bridge import CvBridge
 from ultralytics import YOLOWorld
 
@@ -31,7 +31,7 @@ class YoloProcessing(Node):
         )
 
         self.classes_subscription = self.create_subscription(
-            StringMultiArray,
+            String,
             '/yolo_classes',
             self.classes_callback,
             qos
@@ -50,14 +50,14 @@ class YoloProcessing(Node):
 
         self.get_logger().info('YOLO processing node started')
 
-    def classes_callback(self, msg: StringMultiArray):
-        classes = [class_name.strip() for class_name in msg.data if class_name.strip()]
-        if not classes:
+    def classes_callback(self, msg: String):
+        object_class = msg.data.strip()
+        if not object_class:
             self.get_logger().warning('Ignoring empty YOLO classes message')
             return
 
-        self.model.set_classes(classes + ['hand'])
-        self.get_logger().info(f'YOLO classes updated: {classes}')
+        self.model.set_classes([object_class, 'hand'])
+        self.get_logger().info(f'YOLO classes updated: {[object_class]}')
 
     def image_callback(self, msg: Image):
         try:

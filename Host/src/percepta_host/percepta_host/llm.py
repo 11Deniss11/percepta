@@ -2,7 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
-from std_msgs.msg import String, StringMultiArray
+from std_msgs.msg import String
 import ollama
 
 from sensor_msgs.msg import Image
@@ -36,7 +36,7 @@ class QwenNode(Node):
         # Publisher for the model's responses for tts
         self.publisher_tts = self.create_publisher(String, '/say', 10)
 
-        self.publisher_yolo = self.create_publisher(StringMultiArray, '/yolo_classes', 10)
+        self.publisher_yolo = self.create_publisher(String, '/yolo_classes', 10)
 
         # State variables for image processing
         self.latest_image_msg = None
@@ -112,8 +112,8 @@ class QwenNode(Node):
                 end_idx = reply_msg.data.find("]")
                 if start_idx > 0 and end_idx > start_idx:
                     object_class = reply_msg.data[start_idx:end_idx]
-                    yolo_msg = StringMultiArray()
-                    yolo_msg.data = [object_class]
+                    yolo_msg = String()
+                    yolo_msg.data = object_class
                     self.publisher_yolo.publish(yolo_msg)
                     self.get_logger().info(f"Published object class '{object_class}' to '/yolo_classes'.")
                 else:
