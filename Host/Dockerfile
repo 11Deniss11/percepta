@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install -y curl zstd && rm -rf /var/lib/apt/lists/
 
 # Install the Ollama daemon
 RUN curl -fsSL https://ollama.com/install.sh | sh
+ENV PATH="/usr/local/bin:/usr/bin:${PATH}"
+RUN command -v ollama && ollama --version
 
 # TTS stuff
 RUN python3 -m pip install --break-system-packages --no-cache-dir piper-tts

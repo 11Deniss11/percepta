@@ -12,13 +12,27 @@ fi
 
 source "$workspace/install/setup.bash"
 
+ollama_bin="$(command -v ollama || true)"
+if [ -z "$ollama_bin" ]; then
+    for candidate in /usr/local/bin/ollama /usr/bin/ollama; do
+        if [ -x "$candidate" ]; then
+            ollama_bin="$candidate"
+            break
+        fi
+    done
+fi
+if [ -z "$ollama_bin" ]; then
+    echo "Ollama executable was not found in PATH or /usr/local/bin." >&2
+    exit 1
+fi
+
 ollama_url=http://127.0.0.1:11434/
 ollama_log=/tmp/ollama.log
 ollama_startup_timeout=${OLLAMA_STARTUP_TIMEOUT:-120}
 
 if ! curl -fsS "$ollama_url" >/dev/null 2>&1; then
     : > "$ollama_log"
-    ollama serve >"$ollama_log" 2>&1 &
+    "$ollama_bin" serve >"$ollama_log" 2>&1 &
     ollama_pid=$!
 
     for ((elapsed=0; elapsed<ollama_startup_timeout; elapsed++)); do
