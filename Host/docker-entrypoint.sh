@@ -12,18 +12,45 @@ fi
 
 source "$workspace/install/setup.bash"
 
-if ! curl -fsS http://localhost:11434/ >/dev/null 2>&1; then
-    ollama serve >/tmp/ollama.log 2>&1 &
-    for _ in {1..30}; do
-        if curl -fsS http://localhost:11434/ >/dev/null 2>&1; then
+ollama_bin="$(command -v ollama || true)"
+if [ -z "$ollama_bin" ]; then
+    for candidate in /usr/local/bin/ollama /usr/bin/ollama; do
+        if [ -x "$candidate" ]; then
+            ollama_bin="$candidate"
             break
+        fi
+    done
+fi
+if [ -z "$ollama_bin" ]; then
+    echo "Ollama executable was not found in PATH or /usr/local/bin." >&2
+    exit 1
+fi
+
+ollama_url=http://127.0.0.1:11434/
+ollama_log=/tmp/ollama.log
+ollama_startup_timeout=${OLLAMA_STARTUP_TIMEOUT:-120}
+
+if ! curl -fsS "$ollama_url" >/dev/null 2>&1; then
+    : > "$ollama_log"
+    "$ollama_bin" serve >"$ollama_log" 2>&1 &
+    ollama_pid=$!
+
+    for ((elapsed=0; elapsed<ollama_startup_timeout; elapsed++)); do
+        if curl -fsS "$ollama_url" >/dev/null 2>&1; then
+            break
+        fi
+        if ! kill -0 "$ollama_pid" 2>/dev/null; then
+            echo "Ollama exited before becoming ready. Log:" >&2
+            cat "$ollama_log" >&2
+            exit 1
         fi
         sleep 1
     done
 fi
 
-if ! curl -fsS http://localhost:11434/ >/dev/null 2>&1; then
-    echo "Ollama did not become ready" >&2
+if ! curl -fsS "$ollama_url" >/dev/null 2>&1; then
+    echo "Ollama did not become ready after ${ollama_startup_timeout}s. Log:" >&2
+    cat "$ollama_log" >&2
     exit 1
 fi
 

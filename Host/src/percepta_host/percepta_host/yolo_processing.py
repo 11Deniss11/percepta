@@ -1,7 +1,11 @@
+from math import hypot
+
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import Image
+from std_msgs.msg import StringMultiArray
 from cv_bridge import CvBridge
 from ultralytics import YOLOWorld
 
@@ -19,20 +23,41 @@ class YoloProcessing(Node):
             history=QoSHistoryPolicy.KEEP_LAST,
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
         )
-        self.subscription = self.create_subscription(
+        self.image_subscription = self.create_subscription(
             Image,
             '/image_raw',
             self.image_callback,
             qos
         )
 
+        self.classes_subscription = self.create_subscription(
+            StringMultiArray,
+            '/yolo_classes',
+            self.classes_callback,
+            qos
+        )
+
         self.publisher = self.create_publisher(
             Image,
-            '/camera/yolo_output',
+            '/yolo_output',
+            qos
+        )
+        self.coordinate_difference_publisher = self.create_publisher(
+            PointStamped,
+            '/yolo_coordinate_difference',
             qos
         )
 
         self.get_logger().info('YOLO processing node started')
+
+    def classes_callback(self, msg: StringMultiArray):
+        classes = [class_name.strip() for class_name in msg.data if class_name.strip()]
+        if not classes:
+            self.get_logger().warning('Ignoring empty YOLO classes message')
+            return
+
+        self.model.set_classes(classes + ['hand'])
+        self.get_logger().info(f'YOLO classes updated: {classes}')
 
     def image_callback(self, msg: Image):
         try:
@@ -43,16 +68,25 @@ class YoloProcessing(Node):
 
             results = self.model(frame, conf=0.07, verbose=False)
             result = results[0]
+            best_hand = None
+            best_object = None
             for box in result.boxes:
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
                 center_x = (x1 + x2) / 2
                 center_y = (y1 + y2) / 2
                 confidence = float(box.conf[0])
-                # self.get_logger().debug(
-                #     f'Hand coordinates: center=({center_x:.1f}, {center_y:.1f}), '
-                #     f'box=({x1:.1f}, {y1:.1f}, {x2:.1f}, {y2:.1f}), '
-                #     f'confidence={confidence:.3f}'
-                # )
+                class_name = result.names[int(box.cls[0])].lower()
+                detection = (confidence, center_x, center_y)
+                if class_name == 'hand':
+                    if best_hand is None or confidence > best_hand[0]:
+                        best_hand = detection
+                elif best_object is None or confidence > best_object[0]:
+                    best_object = detection
+
+            self.coordinate_difference_publisher.publish(
+                self.coordinate_difference_message(msg, best_hand, best_object)
+            )
+
             annotated_frame = result.plot()
 
             output_msg = self.bridge.cv2_to_imgmsg(
@@ -65,6 +99,25 @@ class YoloProcessing(Node):
 
         except Exception as error:
             self.get_logger().error(f'Image processing failed: {error}')
+
+    @staticmethod
+    def coordinate_difference_message(
+        image_msg: Image,
+        hand: tuple[float, float, float] | None,
+        object_detection: tuple[float, float, float] | None,
+    ) -> PointStamped:
+        coordinate_msg = PointStamped()
+        coordinate_msg.header = image_msg.header
+        if hand is not None and object_detection is not None:
+            _, hand_x, hand_y = hand
+            _, object_x, object_y = object_detection
+            difference_x = object_x - hand_x
+            difference_y = object_y - hand_y
+            if hypot(difference_x, difference_y) >= 15:
+                coordinate_msg.point.x = difference_x
+                coordinate_msg.point.y = difference_y
+        coordinate_msg.point.z = 0.0
+        return coordinate_msg
 
 
 def main(args=None):
