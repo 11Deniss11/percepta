@@ -2,12 +2,15 @@ import rclpy
 from geometry_msgs.msg import PointStamped
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from collections import deque
 import socket
+import time
 
 class MotorInstructions(Node):
 
     MAX_POWER_DIST = 500
     MIN_POWER_DIST = 50
+    MAX_UDP_PACKETS_PER_SECOND = 7
 
     MIN_POWER = 0.2
 
@@ -21,6 +24,7 @@ class MotorInstructions(Node):
 
         # Initialize UDP socket
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._udp_packet_times = deque()
 
         qos = QoSProfile(
             depth=1,
@@ -69,8 +73,15 @@ class MotorInstructions(Node):
 
         # Send the motor instructions as a UDP packet
         payload = f"{motor_nx:.3f},{motor_px:.3f},{motor_ny:.3f},{motor_py:.3f}"
+        now = time.monotonic()
+        while self._udp_packet_times and now - self._udp_packet_times[0] >= 1.0:
+            self._udp_packet_times.popleft()
+        if len(self._udp_packet_times) >= self.MAX_UDP_PACKETS_PER_SECOND:
+            return
+
         try:
             self.udp_socket.sendto(payload.encode('utf-8'), (target_ip, target_port))
+            self._udp_packet_times.append(now)
             self.get_logger().info(f'Sent UDP: {payload} to {target_ip}:{target_port}')
         except Exception as e:
             self.get_logger().error(f'UDP send failed: {e}')
