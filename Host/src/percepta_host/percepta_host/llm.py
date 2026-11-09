@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from std_msgs.msg import String, StringMultiArray
 import ollama
 
 from sensor_msgs.msg import Image
@@ -25,11 +26,17 @@ class QwenNode(Node):
             Image,
             '/image_raw',
             self.image_callback,
-            10
+            QoSProfile(
+                depth=1,
+                history=QoSHistoryPolicy.KEEP_LAST,
+                reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            )
         )
         
-        # Publisher for the model's generated responses
-        self.publisher_ = self.create_publisher(String, '/say', 10)
+        # Publisher for the model's responses for tts
+        self.publisher_tts = self.create_publisher(String, '/say', 10)
+
+        self.publisher_yolo = self.create_publisher(StringMultiArray, '/yolo_classes', 10)
 
         # State variables for image processing
         self.latest_image_msg = None
@@ -54,8 +61,6 @@ class QwenNode(Node):
             'content': 'You are an AI assistant named Laura responding to voice commands. Your purpose is to integrate a system of sensors to help blind people. If you are asked for help to find something, or where something is, simply state "You are looking for [object class for yolo]". ALWAYS put the object class of the object being looked for inside of square brackets. For example, if someone asks "Where are my keys?", you should respond with "You are looking for [keys]". Keep your answers short and concise.'
         }
 
-        user_msg = {'role': 'user', 'content': prompt}
-
         # Check if we have received an image yet
         if self.latest_image_msg is not None:
             try:
@@ -79,7 +84,7 @@ class QwenNode(Node):
         try:
             response = ollama.chat(
                 model='qwen3.5:2b', 
-                messages=[system_msg, user_msg],
+                messages=[system_msg, message_payload],
                 think=False,
                 options={
                     'reasoning_effort': 0,
@@ -98,9 +103,21 @@ class QwenNode(Node):
             reply_msg.data = reply_text
 
             if not "[" in reply_msg.data:
-                self.publisher_.publish(reply_msg)
+                self.publisher_tts.publish(reply_msg)
             
                 self.get_logger().info("Response published successfully.")
+            else:
+                # Extract the object class from the response
+                start_idx = reply_msg.data.find("[") + 1
+                end_idx = reply_msg.data.find("]")
+                if start_idx > 0 and end_idx > start_idx:
+                    object_class = reply_msg.data[start_idx:end_idx]
+                    yolo_msg = StringMultiArray()
+                    yolo_msg.data = [object_class]
+                    self.publisher_yolo.publish(yolo_msg)
+                    self.get_logger().info(f"Published object class '{object_class}' to '/yolo_classes'.")
+                else:
+                    self.get_logger().warn("No valid object class found in the response.")
 
             
         except Exception as e:
