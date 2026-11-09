@@ -7,4 +7,7 @@ weights/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+*.pyc
+*.pyo
+*.pyd
 yolov8s-worldv2.pt
