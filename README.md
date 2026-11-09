@@ -81,7 +81,7 @@ flowchart LR
 
 ### Pipeline, step by step
 
-1. **Capture.** The Raspberry Pi on the glasses starts its own Wi-Fi hotspot (`Percepta`, `192.168.50.1`) and waits for the host laptop to join. It then captures 640×480 JPEG frames at 10 FPS, splits each frame into 1200-byte UDP packets, and sends them to the host on port `5000`.
+1. **Capture.** The host laptop starts a 2.4 GHz Wi-Fi hotspot. The Raspberry Pi and ESP32 join that hotspot. The Pi discovers the laptop gateway (or uses `HOST_IP`) and captures 640×480 JPEG frames at 10 FPS, splits each frame into 1200-byte UDP packets, and sends them to the host on port `5000`.
 2. **Reassemble.** `udp_image_publisher` puts the packets back together, drops any frame that hasn't fully arrived within 1 second, and publishes only the newest frame to `/image_raw`. Publishing only the newest frame keeps delay low because old frames never queue up.
 3. **Listen.** Microphone audio streams to `speech_recognition` over TCP port `5005`. Whisper (tiny, English) transcribes each phrase. Only phrases that contain the wake word **"Laura"** are passed on, to `llm_prompt`.
 4. **Understand.** The `llm` node sends the spoken request and the latest camera frame to **Qwen 3.5 (2B)**, which runs locally through Ollama.
@@ -102,8 +102,8 @@ flowchart LR
 ```
 percepta/
 ├── Glasses/                  # Runs on the Raspberry Pi on the glasses
-│   ├── main.py               # Entry point: start hotspot, wait for host, stream
-│   ├── hotspot.py            # NetworkManager hotspot + finds the host's IP
+│   ├── main.py               # Entry point: find host, then stream
+│   ├── hotspot.py            # Finds the laptop hotspot gateway
 │   ├── camera.py             # Picamera2 capture and JPEG encoding
 │   ├── udp_stream.py         # Splits frames into UDP packets
 │   └── config.py             # All settings, overridable by environment variable
